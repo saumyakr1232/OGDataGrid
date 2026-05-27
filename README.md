@@ -1,148 +1,152 @@
-# og-data-grid
+# OGDataGrid
 
-A read-only React data grid built on **TanStack Table v8** with **MUI** styling. Feature-matched to AG Grid Community (minus editing), in a single ~30 KB-ish library.
-
-```bash
-npm install og-data-grid
-# peers:
-npm install @mui/material @mui/icons-material @mui/x-date-pickers @emotion/react @emotion/styled
-```
-
-## Features (v1)
-
-- **Sorting** — single + shift-click multi-sort
-- **Per-column filters** — text / number-range / date-range / select / multi-select / boolean
-- **Advanced filter builder** — AND/OR groups with nested logic, serializable to `{ field, op, value }` trees
-- **Global quick search** — debounced, scans every visible cell
-- **Column visibility** — toolbar menu with checkboxes, "show all / hide all", and search
-- **Column resize** — drag column edges
-- **Row grouping** — multi-level, with expand/collapse
-- **Aggregation** — `sum` / `avg` / `min` / `max` / `count` / `uniqueCount` per column, or custom
-- **Row virtualization** — `@tanstack/react-virtual`; activates automatically when pagination is off
-- **Pagination** — client-side via MUI `TablePagination`, configurable page sizes
-- **Row selection** — single or multi, with checkboxes
-- **Density** — compact / standard / comfortable
-- **CSV export** — honors visible columns, sort order, expanded groups, and `meta.exportValue`
-- **Overlays** — `loading`, `noRowsOverlay`, `errorOverlay` slots
-- **Sticky header**, MUI theme-aware styling
-
-Editing, master-detail, pivoting, column reorder, and column pinning are deliberately out of scope for v1.
-
-## Usage
+A read-only React data grid built on **TanStack Table v8** + **MUI**, feature-matched to AG Grid Community/Enterprise (minus editing).
 
 ```tsx
 import { DataGrid, type DataGridColumnDef } from 'og-data-grid';
 
-type Sale = { id: string; product: string; revenue: number; region: string };
-
 const columns: DataGridColumnDef<Sale>[] = [
-  { accessorKey: 'id', header: 'ID', size: 100 },
-  {
-    accessorKey: 'product',
-    header: 'Product',
-    meta: { filterVariant: 'text' },
-  },
-  {
-    accessorKey: 'region',
-    header: 'Region',
-    meta: {
-      filterVariant: 'multiSelect',
-      filterOptions: [
-        { label: 'North', value: 'North' },
-        { label: 'South', value: 'South' },
-      ],
-      groupable: true,
-    },
-  },
-  {
-    accessorKey: 'revenue',
-    header: 'Revenue',
-    cell: ({ getValue }) => `$${getValue<number>().toLocaleString()}`,
-    meta: {
-      filterVariant: 'number',
-      align: 'right',
-      aggregationFn: 'sum',
-    },
-  },
+  { accessorKey: 'id', header: 'ID' },
+  { accessorKey: 'region', header: 'Region', meta: { filterVariant: 'set', groupable: true } },
+  { accessorKey: 'revenue', header: 'Revenue', meta: { filterVariant: 'number', aggregationFn: 'sum', align: 'right' } },
 ];
 
-export function Page({ rows }: { rows: Sale[] }) {
-  return (
-    <DataGrid<Sale>
-      columns={columns}
-      rows={rows}
-      getRowId={(r) => r.id}
-      selection={{ mode: 'multi' }}
-      initialState={{ showFilters: true }}
-    />
-  );
-}
+<DataGrid<Sale> columns={columns} rows={rows} getRowId={(r) => r.id} selection={{ mode: 'multi' }} />
 ```
 
-You must wrap your app in MUI's `ThemeProvider` and (if you use date filters) `LocalizationProvider`:
+## Install
 
-```tsx
-import { LocalizationProvider } from '@mui/x-date-pickers';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-
-<ThemeProvider theme={theme}>
-  <LocalizationProvider dateAdapter={AdapterDayjs}>
-    <App />
-  </LocalizationProvider>
-</ThemeProvider>
+```sh
+npm i og-data-grid
+# Required peer deps
+npm i @mui/material @mui/icons-material @emotion/react @emotion/styled @mui/x-date-pickers
+# Optional peer deps (lazy-loaded — only if you use the matching feature)
+npm i echarts        # for charts
+npm i exceljs        # for Excel export
 ```
 
-## Column meta
+## Features
 
-`meta` extends TanStack's `ColumnDef` with grid-specific config:
+### Core (v1)
+- **Sorting** — single + shift-multi
+- **Per-column filters** — `text` · `number` (range) · `date` (range) · `select` · `multiSelect` · `boolean` · `set` (Excel-style)
+- **Advanced filter builder** — drawer that composes AND/OR groups of `{column, op, value}` rules; serializable JSON output
+- **Quick global search** — debounced
+- **Column visibility** — toolbar menu with search
+- **Column resize** — drag header borders
+- **Pagination** — MUI `TablePagination`, configurable page sizes
+- **Row selection** — single or multi, pinned-left checkbox column
+- **Grouping + aggregation** — drag to "Group by" zone or toggle from header menu; aggregations `sum / avg / min / max / count / uniqueCount / unique`; custom `aggregatedCell` renderer
+- **Virtualization** — `@tanstack/react-virtual` for non-paginated grids
+- **CSV export** — honours visible cols, sort, grouping; uses `meta.exportValue` if provided
+- **Density** — compact / standard / comfortable
+- **Slots** — `loadingOverlay` / `noRowsOverlay` / `errorOverlay` / `toolbarExtras`
+- **Theming** — pure MUI `sx` + `styled`; picks up the consumer's `ThemeProvider` (no global CSS)
 
-| Field | Purpose |
-|---|---|
-| `filterVariant` | `'text' \| 'number' \| 'date' \| 'select' \| 'multiSelect' \| 'boolean'` |
-| `filterOptions` | `{ label, value }[]` for `select` / `multiSelect` |
-| `align` | Cell alignment: `'left' \| 'right' \| 'center'` |
-| `headerTooltip` | Tooltip shown on the header label |
-| `hideable` | Default `true`. Set `false` to lock a column visible. |
-| `resizable` | Default `true`. |
-| `groupable` | Default `false`. Required to appear in the Group-by menu. |
-| `aggregationFn` | `'sum' \| 'avg' \| 'min' \| 'max' \| 'count' \| 'uniqueCount'` |
-| `aggregatedCell` | Custom renderer for the cell in a group row |
-| `exportValue` | `(row) => string \| number` — overrides the default value used in CSV export |
+### v2 additions
+- **Cell focus + keyboard navigation** — arrow keys / Home / End / PgUp / PgDn / Ctrl+Home/End / Space / Enter / Esc
+- **Range selection** — shift+arrows or shift+click extends the range
+- **Clipboard copy** — `Ctrl/Cmd+C` on a range emits TSV
+- **Column reorder** — drag handles in the header (dnd-kit)
+- **Column pinning** — left/right pinning with sticky cells; menu entry per column
+- **Drag-to-group zone** — drag any groupable header column into the drop band above the headers
+- **Column groups** — multi-row headers from TanStack's nested `columns`
+- **Status bar** — selected count + sum/avg/min/max over numeric cells in the active range
+- **Sparklines** — inline mini-charts per cell (`line`, `bar`, `area`, `winLoss`) — hand-rolled SVG, no echarts overhead per row
+- **Charts (modal)** — `New chart` toolbar button opens a draggable MUI `Dialog`; supports `bar`, `stackedBar`, `line`, `area`, `pie`, `doughnut`, `scatter`; **echarts is peer-loaded lazily on first chart open**. Live re-renders as the user sorts/filters/groups. PNG export + JSON config copy.
+- **Pivot** — drawer to pick row groups × column groups × value cols + aggregations; replaces the grid's data with a synthetic pivoted row model
+- **Excel export** — lazy-imports `exceljs`; emits `.xlsx` with frozen header + auto-filter
+- **Master-detail** — pass `renderDetailPanel(row)` and each row gets an expand chevron
+- **Pinned rows** — `pinnedRowsTop` / `pinnedRowsBottom` for totals / footer rows
+- **Conditional cell styling** — `meta.cellClassRules: { className: (value, row) => boolean }`
 
-For custom per-column filtering logic, supply your own `filterFn` on the `ColumnDef` directly (TanStack's standard API).
+## Column meta reference
 
-## State
+```ts
+type DataGridColumnMeta<T> = {
+  filterVariant?: 'text' | 'number' | 'date' | 'select' | 'multiSelect' | 'boolean' | 'set';
+  filterOptions?: { label: string; value: unknown }[]; // select / multiSelect
+  align?: 'left' | 'right' | 'center';
+  headerTooltip?: string;
+  exportValue?: (row: T) => string | number | null | undefined;
+  hideable?: boolean;        // default true
+  resizable?: boolean;       // default true
+  reorderable?: boolean;     // default true
+  pinnable?: boolean;        // default true
+  groupable?: boolean;       // default false
+  aggregationFn?: 'sum' | 'avg' | 'min' | 'max' | 'count' | 'uniqueCount' | 'unique';
+  aggregatedCell?: (info) => ReactNode;
+  sparkline?: {
+    type: 'line' | 'bar' | 'area' | 'winLoss';
+    valueAccessor: (row: T) => number[];
+    color?: string | ((vals: number[]) => string);
+    thresholds?: { positive?: string; negative?: string }; // winLoss
+    showTooltip?: boolean;   // default true
+    height?: number;
+    width?: number;
+  };
+  cellClassRules?: Record<string, (value: unknown, row: T) => boolean>;
+};
+```
 
-All state is uncontrolled by default. To persist or sync (e.g. to URL params):
+## Props
 
-```tsx
-const [gridState, setGridState] = useState<Partial<DataGridState>>({});
+```ts
+<DataGrid<T>
+  columns
+  rows
+  getRowId?
+  loading?  error?
+  selection?={ mode: 'single' | 'multi' }
+  pagination?={ pageSize, pageSizeOptions } | false
 
-<DataGrid
-  columns={columns}
-  rows={rows}
-  initialState={gridState}
-  onStateChange={setGridState}
+  // Toggle features
+  enableMultiSort?         enableColumnResizing?      enableColumnReorder?
+  enableColumnPinning?     enableDragToGroup?         enableGrouping?
+  enableVirtualization?    enableKeyboardNavigation?  enableRangeSelection?
+  enableClipboardCopy?     enableStatusBar?           enableCharts?
+  enableExcelExport?       enablePivot?               enableCsvExport?
+
+  // Export
+  csvFileName?  excelFileName?
+
+  // Master-detail
+  renderDetailPanel?={ (row: T) => ReactNode }
+
+  // Pinned totals
+  pinnedRowsTop?  pinnedRowsBottom?
+
+  // State (uncontrolled-with-onChange or fully controlled)
+  initialState?    state?    onStateChange?
+
+  // Slots
+  slots?={ loadingOverlay, noRowsOverlay, errorOverlay, toolbarExtras }
+  density?
+  height?
+  className?
 />
 ```
 
-The `DataGridState` shape (sorting, filters, visibility, grouping, expanded, pagination, advanced filter, density, etc.) is exported.
+## Extension points
 
-## Extensibility — server-side later
+- **Server-side mode** is intentionally not wired in v2, but the API is shaped to accept it. `useDataGridState` already emits `onStateChange` with the full state shape. A future pass adds a `serverSide={{ fetchRows }}` prop that flips `manualPagination`/`manualSorting`/`manualFiltering` and routes state into the fetcher — no consumer-facing breaking change.
+- **Custom sparkline engine** — set `meta.sparkline.engine = 'echarts'` to switch a row's sparkline from the built-in SVG renderer to a lazy-loaded echarts instance (heavier; only worth it for very rich sparkline types).
+- **Custom cells / headers** — pass any `cell` / `header` function through TanStack's `ColumnDef`.
+- **Custom filter functions** — supply a per-column `filterFn`. Built-in `'set'` variant attaches an `inList` filter automatically.
 
-v1 is client-only by design. The architecture leaves a single seam for server-side mode:
+## Caveats
 
-- All filter/sort/group state changes route through `onStateChange`.
-- The advanced filter is already a serializable `{ field, op, value, combinator }` tree — safe to send as a query string.
-- Adding a future `serverSide={{ fetchRows }}` prop is a hook-level change (`manualPagination` / `manualSorting` / `manualFiltering` flags on the TanStack instance) — no API rewrite for consumers.
+- Charts render as modal dialogs, so pop-up blockers are not an issue.
+- Server-side grouping / pivoting / lazy-load is out of scope for v2 (everything is computed client-side; perf is fine for ~50k rows with virtualization on).
+- Editing is out of scope by design — this grid is read-only.
 
-## Development
+## Dev
 
-```bash
+```sh
 npm install
-npm run dev         # demo app at http://localhost:5173
+npm run dev       # demo at http://localhost:5173
+npm run build     # library build (dist/)
 npm run typecheck
-npm run build       # emits dist/
 ```
 
-The `demo/` folder is a working consumer (2,500-row sales dataset) that exercises every feature.
+Library entry: `src/index.ts`. Vite library config: `vite.config.ts`. Demo lives in `demo/`.

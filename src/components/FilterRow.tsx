@@ -1,13 +1,14 @@
 import { TableCell, TableRow } from '@mui/material';
-import type { Header } from '@tanstack/react-table';
+import type { Header, Table } from '@tanstack/react-table';
 import { TextFilter } from './filters/TextFilter';
 import { NumberFilter } from './filters/NumberFilter';
 import { DateFilter } from './filters/DateFilter';
 import { SelectFilter } from './filters/SelectFilter';
 import { BooleanFilter } from './filters/BooleanFilter';
+import { SetFilter } from './filters/SetFilter';
 import type { DataGridColumnMeta } from '../types';
 
-export function FilterRow<T>({ headers }: { headers: Header<T, unknown>[] }) {
+export function FilterRow<T>({ headers, table }: { headers: Header<T, unknown>[]; table: Table<T> }) {
   return (
     <TableRow>
       {headers.map((header) => {
@@ -31,6 +32,8 @@ export function FilterRow<T>({ headers }: { headers: Header<T, unknown>[] }) {
               <SelectFilter column={col} options={meta?.filterOptions ?? []} multi />
             ) : variant === 'boolean' ? (
               <BooleanFilter column={col} />
+            ) : variant === 'set' ? (
+              <SetFilter column={col} table={table} />
             ) : (
               <TextFilter column={col} />
             )}

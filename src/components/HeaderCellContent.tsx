@@ -1,6 +1,6 @@
 import { Box, IconButton, TableSortLabel, Tooltip } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { useState, type ReactElement } from 'react';
+import { useState, type ReactElement, type ReactNode } from 'react';
 import { flexRender, type Header } from '@tanstack/react-table';
 import type { AggregationFn, DataGridColumnMeta } from '../types';
 import { ColumnHeaderMenu } from './ColumnHeaderMenu';
@@ -8,11 +8,13 @@ import { ResizeHandle } from '../styled';
 
 export function HeaderCellContent<T>({
   header,
+  dragHandle,
   groupingActive,
   currentAggregation,
   onSetAggregation,
 }: {
   header: Header<T, unknown>;
+  dragHandle?: ReactNode;
   groupingActive: boolean;
   currentAggregation: AggregationFn | undefined;
   onSetAggregation: (columnId: string, fn: AggregationFn) => void;
@@ -49,6 +51,7 @@ export function HeaderCellContent<T>({
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'space-between', width: '100%' }}>
+      {dragHandle}
       <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {wrapped}
       </Box>

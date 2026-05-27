@@ -1,4 +1,9 @@
 export { DataGrid } from './DataGrid';
+export { Sparkline } from './components/Sparkline';
+export { buildEChartsOption } from './charts/buildOption';
+export type { ChartConfig, ChartType } from './charts/buildOption';
+export { buildPivot } from './pivot/buildPivot';
+export type { PivotConfig } from './pivot/buildPivot';
 export type {
   DataGridProps,
   DataGridColumnDef,
@@ -12,6 +17,8 @@ export type {
   AdvancedFilterRule,
   AdvancedFilterGroup,
   AggregationFn,
+  SparklineConfig,
+  SparklineType,
 } from './types';
 export { generateColumns, humanizeKey } from './columns/generateColumns';
 export {

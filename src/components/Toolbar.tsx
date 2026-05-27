@@ -1,7 +1,6 @@
 import {
   Box,
   Button,
-  Chip,
   IconButton,
   InputAdornment,
   TextField,
@@ -12,6 +11,9 @@ import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import TuneIcon from '@mui/icons-material/Tune';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import ClearIcon from '@mui/icons-material/Clear';
+import InsertChartIcon from '@mui/icons-material/InsertChart';
+import PivotTableChartIcon from '@mui/icons-material/PivotTableChart';
+import GridOnIcon from '@mui/icons-material/GridOn';
 import { useEffect, useState } from 'react';
 import type { Table } from '@tanstack/react-table';
 import { ColumnsMenu } from './ColumnsMenu';
@@ -30,8 +32,15 @@ export function Toolbar<T>({
   advancedFilter,
   density,
   onDensityChange,
-  tools,
+  enableGrouping,
+  enableCsvExport,
   onExportCsv,
+  enableCharts,
+  onNewChart,
+  enableExcelExport,
+  onExportExcel,
+  enablePivot,
+  onOpenPivot,
   extras,
 }: {
   table: Table<T>;
@@ -43,16 +52,15 @@ export function Toolbar<T>({
   advancedFilter: AdvancedFilterGroup | null;
   density: Density;
   onDensityChange: (d: Density) => void;
-  tools: {
-    quickFilter: boolean;
-    columnFilters: boolean;
-    advancedFilter: boolean;
-    columns: boolean;
-    groupBy: boolean;
-    density: boolean;
-    export: boolean;
-  };
+  enableGrouping: boolean;
+  enableCsvExport: boolean;
   onExportCsv: () => void;
+  enableCharts: boolean;
+  onNewChart: () => void;
+  enableExcelExport: boolean;
+  onExportExcel: () => void;
+  enablePivot: boolean;
+  onOpenPivot: () => void;
   extras?: React.ReactNode;
 }) {
   const [local, setLocal] = useState(globalFilter);
@@ -64,81 +72,80 @@ export function Toolbar<T>({
   }, [local]);
 
   const advCount = advancedFilter ? countRules(advancedFilter) : 0;
-  const grouping = table.getState().grouping;
 
   return (
     <GridToolbar>
-      {tools.quickFilter && (
-        <TextField
-          size="small"
-          placeholder="Quick search…"
-          value={local}
-          onChange={(e) => setLocal(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" />
-              </InputAdornment>
-            ),
-            endAdornment: local ? (
-              <InputAdornment position="end">
-                <IconButton size="small" onClick={() => setLocal('')} aria-label="Clear search">
-                  <ClearIcon fontSize="small" />
-                </IconButton>
-              </InputAdornment>
-            ) : null,
-          }}
-          sx={{ minWidth: 220 }}
-        />
-      )}
-      {tools.columnFilters && (
-        <Tooltip title={showFilters ? 'Hide column filters' : 'Show column filters'}>
-          <Button
-            size="small"
-            variant={showFilters ? 'contained' : 'text'}
-            startIcon={<FilterAltIcon />}
-            onClick={onToggleFilters}
-          >
-            Filters
-          </Button>
-        </Tooltip>
-      )}
-      {tools.advancedFilter && (
+      <TextField
+        size="small"
+        placeholder="Quick search…"
+        value={local}
+        onChange={(e) => setLocal(e.target.value)}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon fontSize="small" />
+            </InputAdornment>
+          ),
+          endAdornment: local ? (
+            <InputAdornment position="end">
+              <IconButton size="small" onClick={() => setLocal('')} aria-label="Clear search">
+                <ClearIcon fontSize="small" />
+              </IconButton>
+            </InputAdornment>
+          ) : null,
+        }}
+        sx={{ minWidth: 220 }}
+      />
+      <Tooltip title={showFilters ? 'Hide column filters' : 'Show column filters'}>
         <Button
           size="small"
-          variant={advCount > 0 ? 'contained' : 'text'}
-          startIcon={<TuneIcon />}
-          onClick={onOpenAdvanced}
+          variant={showFilters ? 'contained' : 'text'}
+          startIcon={<FilterAltIcon />}
+          onClick={onToggleFilters}
         >
-          Advanced
-          {advCount > 0 ? ` (${advCount})` : ''}
+          Filters
+        </Button>
+      </Tooltip>
+      <Button
+        size="small"
+        variant={advCount > 0 ? 'contained' : 'text'}
+        startIcon={<TuneIcon />}
+        onClick={onOpenAdvanced}
+      >
+        Advanced
+        {advCount > 0 ? ` (${advCount})` : ''}
+      </Button>
+      <ColumnsMenu table={table} />
+      {enableGrouping && <GroupByMenu table={table} />}
+      {enablePivot && (
+        <Button
+          size="small"
+          startIcon={<PivotTableChartIcon />}
+          onClick={onOpenPivot}
+          variant="text"
+        >
+          Pivot
         </Button>
       )}
-      {tools.columns && <ColumnsMenu table={table} />}
-      {tools.groupBy && <GroupByMenu table={table} />}
-      {tools.groupBy && grouping.length > 0 && (
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: 0.5,
-          }}
+      {enableCharts && (
+        <Button
+          size="small"
+          startIcon={<InsertChartIcon />}
+          onClick={onNewChart}
+          variant="text"
         >
-          {grouping.map((g) => (
-            <Chip
-              key={g}
-              size="small"
-              label={String(table.getColumn(g)?.columnDef.header ?? g)}
-              onDelete={() => table.getColumn(g)?.toggleGrouping()}
-            />
-          ))}
-        </Box>
+          New chart
+        </Button>
       )}
-      {tools.density && <DensityMenu density={density} onChange={onDensityChange} />}
-      {tools.export && (
+      <DensityMenu density={density} onChange={onDensityChange} />
+      {enableCsvExport && (
         <Button size="small" startIcon={<FileDownloadIcon />} onClick={onExportCsv} variant="text">
-          Export CSV
+          CSV
+        </Button>
+      )}
+      {enableExcelExport && (
+        <Button size="small" startIcon={<GridOnIcon />} onClick={onExportExcel} variant="text">
+          Excel
         </Button>
       )}
       <Box sx={{ flex: 1 }} />

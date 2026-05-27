@@ -13,13 +13,33 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import { flexRender, type Row } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
 
 import { useDataGridState } from './hooks/useDataGridState';
+import { cellInteractionAttrs, useCellInteraction } from './hooks/useCellInteraction';
 import { Toolbar } from './components/Toolbar';
 import { FilterRow } from './components/FilterRow';
-import { HeaderCellContent } from './components/HeaderCellContent';
 import { PaginationFooter } from './components/PaginationFooter';
 import { AdvancedFilterPanel } from './components/AdvancedFilterPanel';
+import { SortableHeaderRow } from './components/SortableHeaderRow';
+import { GroupZone, GROUP_ZONE_ID } from './components/GroupZone';
+import { StatusBar } from './components/StatusBar';
+import { ChartDialog } from './components/ChartDialog';
+import { PivotPanel } from './components/PivotPanel';
+import { PinnedRows } from './components/PinnedRows';
+import { buildPivot, type PivotConfig } from './pivot/buildPivot';
+import { exportTableToExcel } from './export/toExcel';
+import type { ChartConfig } from './charts/buildOption';
 import { exportTableToCsv } from './export/toCsv';
 import { generateColumns } from './columns/generateColumns';
 import { isDataGridConfig, resolveDataGridConfig } from './columns/columnConfig';
@@ -30,7 +50,6 @@ import {
   GridRoot,
   GridTableContainer,
   GroupCellInner,
-  HeaderCell,
   OverlayBox,
   StickyHead,
   densityToRowHeight,
@@ -42,12 +61,15 @@ const SELECTION_COL_ID = '__select__';
 export function DataGrid<T>(props: DataGridProps<T>) {
   const {
     columns,
-    rows,
+    rows: rawRows,
     loading,
     error,
     pagination = { mode: 'client', pageSize: 25, pageSizeOptions: [10, 25, 50, 100] },
     selection,
     enableColumnResizing = true,
+    enableColumnReorder = true,
+    enableColumnPinning = true,
+    enableDragToGroup = true,
     enableGrouping = true,
     enableVirtualization = true,
     slots,
@@ -57,19 +79,21 @@ export function DataGrid<T>(props: DataGridProps<T>) {
     csvFileName = 'export.csv',
     toolbar,
     emptyText = 'N/A',
+    enableKeyboardNavigation = true,
+    enableRangeSelection = true,
+    enableClipboardCopy = true,
+    onClipboardCopy,
+    enableStatusBar = true,
+    enableCharts = true,
+    enableExcelExport = true,
+    excelFileName = 'export.xlsx',
+    enablePivot = true,
+    renderDetailPanel,
+    pinnedRowsTop,
+    pinnedRowsBottom,
   } = props;
 
   const showToolbar = toolbar !== false;
-  const toolbarOpts = toolbar || {};
-  const tools = {
-    quickFilter: toolbarOpts.quickFilter ?? true,
-    columnFilters: toolbarOpts.columnFilters ?? true,
-    advancedFilter: toolbarOpts.advancedFilter ?? true,
-    columns: toolbarOpts.columns ?? true,
-    groupBy: (toolbarOpts.groupBy ?? true) && enableGrouping,
-    density: toolbarOpts.density ?? true,
-    export: (toolbarOpts.export ?? true) && enableCsvExport,
-  };
 
   // A serializable `DataGridConfig` resolves to runtime column defs plus the
   // initial state it implies (hidden columns, group-by, sorting); a plain
@@ -83,8 +107,9 @@ export function DataGrid<T>(props: DataGridProps<T>) {
     ? resolvedConfig.columns
     : (columns as DataGridColumnDef<T>[] | undefined);
   const baseColumns = useMemo(
-    () => (suppliedColumns && suppliedColumns.length > 0 ? suppliedColumns : generateColumns(rows)),
-    [suppliedColumns, rows],
+    () =>
+      suppliedColumns && suppliedColumns.length > 0 ? suppliedColumns : generateColumns(rawRows),
+    [suppliedColumns, rawRows],
   );
 
   // Config-derived initial state seeds the grid; an explicit `initialState`
@@ -97,9 +122,38 @@ export function DataGrid<T>(props: DataGridProps<T>) {
     [resolvedConfig, props.initialState],
   );
 
+  // -- Pivot ---------------------------------------------------------------
+  const [pivotOpen, setPivotOpen] = useState(false);
+  const [pivotEnabled, setPivotEnabled] = useState(false);
+  const [pivotCfg, setPivotCfg] = useState<PivotConfig>({
+    rowGroupCols: [],
+    colGroupCols: [],
+    valueCols: [],
+  });
+  const headerLabels = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const c of baseColumns) {
+      const id =
+        (c as { id?: string; accessorKey?: string }).id ??
+        (c as { accessorKey?: string }).accessorKey ??
+        '';
+      if (id) out[id] = String((c as { header?: unknown }).header ?? id);
+    }
+    return out;
+  }, [baseColumns]);
+  const isPivotActive =
+    enablePivot && pivotEnabled && pivotCfg.rowGroupCols.length > 0 && pivotCfg.valueCols.length > 0;
+  const pivoted = useMemo(() => {
+    if (!isPivotActive) return null;
+    return buildPivot(rawRows as Record<string, unknown>[], pivotCfg, headerLabels);
+  }, [isPivotActive, rawRows, pivotCfg, headerLabels]);
+
   const enrichedColumns = useMemo(() => {
-    const out = [...baseColumns];
-    if (selection) {
+    const out =
+      isPivotActive && pivoted
+        ? (pivoted.columns as unknown as DataGridColumnDef<T>[])
+        : [...baseColumns];
+    if (selection && !isPivotActive) {
       out.unshift({
         id: SELECTION_COL_ID,
         size: 44,
@@ -129,14 +183,20 @@ export function DataGrid<T>(props: DataGridProps<T>) {
       });
     }
     return out;
-  }, [baseColumns, selection]);
+  }, [baseColumns, selection, isPivotActive, pivoted]);
+
+  const effectiveRows =
+    isPivotActive && pivoted ? (pivoted.rows as unknown as typeof rawRows) : rawRows;
 
   const { table, state, setters } = useDataGridState({
     ...props,
+    rows: effectiveRows,
     columns: enrichedColumns,
     initialState,
     enableColumnResizing,
-    enableGrouping,
+    enableColumnPinning,
+    // Disable client grouping while pivoting — the pivot rows are already aggregated.
+    enableGrouping: enableGrouping && !isPivotActive,
   });
 
   const [advOpen, setAdvOpen] = useState(false);
@@ -144,6 +204,39 @@ export function DataGrid<T>(props: DataGridProps<T>) {
   const handleExport = useCallback(() => {
     exportTableToCsv(table, csvFileName);
   }, [table, csvFileName]);
+  const handleExcelExport = useCallback(() => {
+    void exportTableToExcel(table, excelFileName);
+  }, [table, excelFileName]);
+
+  // -- Chart dialog manager -------------------------------------------------
+  interface ChartInstance {
+    id: string;
+    initial?: Partial<ChartConfig>;
+  }
+  const [charts, setCharts] = useState<ChartInstance[]>([]);
+  const chartIdRef = useRef(0);
+  const openChart = useCallback(() => {
+    chartIdRef.current += 1;
+    setCharts((prev) => [...prev, { id: `c${chartIdRef.current}` }]);
+  }, []);
+  const closeChart = useCallback((id: string) => {
+    setCharts((prev) => prev.filter((c) => c.id !== id));
+  }, []);
+  // Bumped whenever state changes so open charts re-render against latest rows.
+  const gridStateVersion = useMemo(
+    () => JSON.stringify({
+      s: state.sorting,
+      f: state.columnFilters,
+      g: state.globalFilter,
+      gr: state.grouping,
+      ex: state.expanded,
+      p: state.pagination,
+      adv: state.advancedFilter ? 'a' : 'b',
+      pv: isPivotActive,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state.sorting, state.columnFilters, state.globalFilter, state.grouping, state.expanded, state.pagination, state.advancedFilter, isPivotActive],
+  ).length;
 
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const rowModel = table.getRowModel();
@@ -173,8 +266,57 @@ export function DataGrid<T>(props: DataGridProps<T>) {
 
   const isEmpty = !loading && rowModel.rows.length === 0;
 
+  const cellInteraction = useCellInteraction<T>({
+    table,
+    virtualizer: useVirtual ? virtualizer : null,
+    enabled: enableKeyboardNavigation || enableRangeSelection || enableClipboardCopy,
+    scrollerRef,
+    pageSize: paginating
+      ? table.getState().pagination.pageSize
+      : Math.max(1, Math.floor((typeof height === 'number' ? height : 600) / rowHeight)),
+    onCopy: enableClipboardCopy ? onClipboardCopy : undefined,
+  });
+
+  // DnD wiring (column reorder + drag-to-group). One DndContext spans the
+  // header row and the group zone so a drag can target either.
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const [draggingColId, setDraggingColId] = useState<string | null>(null);
+  const handleDragStart = (e: DragStartEvent) => setDraggingColId(String(e.active.id));
+  const handleDragEnd = (e: DragEndEvent) => {
+    setDraggingColId(null);
+    const { active, over } = e;
+    if (!over) return;
+    const activeId = String(active.id);
+    const overId = String(over.id);
+    // Drop on the group zone → toggle grouping for that column
+    if (overId === GROUP_ZONE_ID) {
+      const col = table.getColumn(activeId);
+      if (col && col.getCanGroup() && !col.getIsGrouped()) {
+        col.toggleGrouping();
+      }
+      return;
+    }
+    if (activeId === overId) return;
+    // Otherwise it was a reorder drop on another header
+    const currentOrder =
+      table.getState().columnOrder.length > 0
+        ? table.getState().columnOrder
+        : table.getAllLeafColumns().map((c) => c.id);
+    const oldIndex = currentOrder.indexOf(activeId);
+    const newIndex = currentOrder.indexOf(overId);
+    if (oldIndex < 0 || newIndex < 0) return;
+    table.setColumnOrder(arrayMove(currentOrder, oldIndex, newIndex));
+  };
+
+  const draggingHeader = draggingColId ? table.getColumn(draggingColId) : null;
+
   return (
-    <GridRoot className={className} sx={{ height }}>
+    <GridRoot
+      className={className}
+      sx={{ height }}
+      tabIndex={0}
+      onKeyDown={cellInteraction.onKeyDown}
+    >
       {showToolbar && (
         <Toolbar
           table={table}
@@ -186,11 +328,26 @@ export function DataGrid<T>(props: DataGridProps<T>) {
           advancedFilter={state.advancedFilter}
           density={state.density}
           onDensityChange={setters.setDensity}
-          tools={tools}
+          enableGrouping={enableGrouping && !isPivotActive}
+          enableCsvExport={enableCsvExport}
           onExportCsv={handleExport}
+          enableCharts={enableCharts}
+          onNewChart={openChart}
+          enableExcelExport={enableExcelExport}
+          onExportExcel={handleExcelExport}
+          enablePivot={enablePivot}
+          onOpenPivot={() => setPivotOpen(true)}
           extras={slots?.toolbarExtras}
         />
       )}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={() => setDraggingColId(null)}
+      >
+        <GroupZone table={table} visible={enableGrouping && enableDragToGroup} />
       <GridTableContainer ref={scrollerRef}>
         <MuiTable
           stickyHeader
@@ -198,42 +355,66 @@ export function DataGrid<T>(props: DataGridProps<T>) {
           sx={{ tableLayout: 'fixed', width: table.getTotalSize() || '100%' }}
         >
           <StickyHead>
-            {table.getHeaderGroups().map((hg) => (
-              <TableRow key={hg.id}>
-                {hg.headers.map((header) => (
-                  <HeaderCell
-                    key={header.id}
-                    density={state.density}
-                    style={{ width: header.getSize() }}
-                    colSpan={header.colSpan}
-                  >
-                    {header.isPlaceholder ? null : header.id === SELECTION_COL_ID ? (
-                      flexRender(header.column.columnDef.header, header.getContext())
-                    ) : (
-                      <HeaderCellContent
-                        header={header}
-                        groupingActive={state.grouping.length > 0}
-                        currentAggregation={state.aggregationOverrides[header.column.id]}
-                        onSetAggregation={setters.setAggregation}
-                      />
-                    )}
-                  </HeaderCell>
-                ))}
-              </TableRow>
+            {table.getHeaderGroups().map((hg, hgIdx, all) => (
+              <SortableHeaderRow
+                key={hg.id}
+                headerGroup={hg}
+                density={state.density}
+                groupingActive={state.grouping.length > 0}
+                currentAggregations={state.aggregationOverrides}
+                onSetAggregation={setters.setAggregation}
+                // Reorder only on the leaf (bottom-most) header row. Group
+                // headers span multiple leaves and would need a different DnD
+                // strategy to move whole subtrees.
+                enableReorder={enableColumnReorder && hgIdx === all.length - 1}
+              />
             ))}
-            {tools.columnFilters && state.showFilters && (
-              <FilterRow headers={table.getHeaderGroups()[0]?.headers ?? []} />
+            {state.showFilters && (
+              <FilterRow
+                table={table}
+                headers={
+                  table.getHeaderGroups()[table.getHeaderGroups().length - 1]?.headers ?? []
+                }
+              />
             )}
           </StickyHead>
           <TableBody>
+            {pinnedRowsTop && pinnedRowsTop.length > 0 && (
+              <PinnedRows table={table} rows={pinnedRowsTop} density={state.density} position="top" />
+            )}
             {paddingTop > 0 && (
               <tr style={{ height: paddingTop }}>
                 <td colSpan={table.getVisibleLeafColumns().length} />
               </tr>
             )}
-            {rowsToRender.map((row) => (
-              <DataRow key={row.id} row={row} density={state.density} emptyText={emptyText} />
-            ))}
+            {rowsToRender.flatMap((row, i) => {
+              const rowIndex = useVirtual ? virtualItems[i].index : i;
+              const isExpanded = row.getIsExpanded();
+              const nodes = [
+                <DataRow
+                  key={row.id}
+                  row={row}
+                  rowIndex={rowIndex}
+                  density={state.density}
+                  cellInteraction={cellInteraction}
+                  canExpandDetail={!!renderDetailPanel && !row.getIsGrouped()}
+                  emptyText={emptyText}
+                />,
+              ];
+              if (renderDetailPanel && isExpanded && !row.getIsGrouped()) {
+                nodes.push(
+                  <TableRow key={`${row.id}__detail`}>
+                    <TableCell
+                      colSpan={table.getVisibleLeafColumns().length}
+                      sx={{ p: 0, background: 'action.hover', borderBottom: 1, borderColor: 'divider' }}
+                    >
+                      <Box sx={{ p: 2 }}>{renderDetailPanel(row.original)}</Box>
+                    </TableCell>
+                  </TableRow>,
+                );
+              }
+              return nodes;
+            })}
             {paddingBottom > 0 && (
               <tr style={{ height: paddingBottom }}>
                 <td colSpan={table.getVisibleLeafColumns().length} />
@@ -247,6 +428,9 @@ export function DataGrid<T>(props: DataGridProps<T>) {
                   )}
                 </TableCell>
               </TableRow>
+            )}
+            {pinnedRowsBottom && pinnedRowsBottom.length > 0 && (
+              <PinnedRows table={table} rows={pinnedRowsBottom} density={state.density} position="bottom" />
             )}
           </TableBody>
         </MuiTable>
@@ -263,6 +447,24 @@ export function DataGrid<T>(props: DataGridProps<T>) {
           </OverlayBox>
         )}
       </GridTableContainer>
+        <DragOverlay>
+          {draggingHeader ? (
+            <div
+              style={{
+                padding: '6px 10px',
+                background: 'white',
+                border: '1px solid #ccc',
+                borderRadius: 4,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
+                fontWeight: 600,
+                cursor: 'grabbing',
+              }}
+            >
+              {String(draggingHeader.columnDef.header ?? draggingHeader.id)}
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
       {paginating && (
         <FooterBar>
           <PaginationFooter
@@ -271,6 +473,7 @@ export function DataGrid<T>(props: DataGridProps<T>) {
           />
         </FooterBar>
       )}
+      {enableStatusBar && <StatusBar table={table} range={cellInteraction.range} />}
       <AdvancedFilterPanel
         open={advOpen}
         onClose={() => setAdvOpen(false)}
@@ -278,32 +481,82 @@ export function DataGrid<T>(props: DataGridProps<T>) {
         value={state.advancedFilter}
         onChange={setters.setAdvancedFilter}
       />
+      <PivotPanel
+        open={pivotOpen}
+        onClose={() => setPivotOpen(false)}
+        table={table}
+        enabled={pivotEnabled}
+        onEnabledChange={setPivotEnabled}
+        config={pivotCfg}
+        onChange={setPivotCfg}
+      />
+      {charts.map((c) => (
+        <ChartDialog
+          key={c.id}
+          open
+          onClose={() => closeChart(c.id)}
+          table={table}
+          initialConfig={c.initial}
+          gridStateVersion={gridStateVersion}
+        />
+      ))}
     </GridRoot>
   );
 }
 
 function DataRow<T>({
   row,
+  rowIndex,
   density,
+  cellInteraction,
+  canExpandDetail,
   emptyText,
 }: {
   row: Row<T>;
+  rowIndex: number;
   density: 'compact' | 'standard' | 'comfortable';
+  cellInteraction: ReturnType<typeof useCellInteraction<T>>;
+  canExpandDetail?: boolean;
   emptyText: ReactNode;
 }) {
   const isAgg = row.getIsGrouped();
   return (
-    <BodyRow selected={row.getIsSelected()} aggregated={isAgg}>
-      {row.getVisibleCells().map((cell) => {
+    <BodyRow selected={row.getIsSelected()} aggregated={isAgg} data-row-index={rowIndex}>
+      {row.getVisibleCells().map((cell, colIndex) => {
         const meta = cell.column.columnDef.meta as DataGridColumnMeta<T> | undefined;
         const align = meta?.align;
+        const pinned = cell.column.getIsPinned();
+        const pinSide: 'left' | 'right' | null =
+          pinned === 'left' ? 'left' : pinned === 'right' ? 'right' : null;
+        const pinStyle: React.CSSProperties = pinSide
+          ? {
+              position: 'sticky',
+              left: pinSide === 'left' ? cell.column.getStart(pinSide) : undefined,
+              right: pinSide === 'right' ? cell.column.getAfter(pinSide) : undefined,
+              zIndex: 1,
+              background: 'inherit',
+              boxShadow:
+                pinSide === 'left'
+                  ? '2px 0 4px -2px rgba(0,0,0,0.15)'
+                  : '-2px 0 4px -2px rgba(0,0,0,0.15)',
+            }
+          : {};
+        const interactionProps = {
+          ...cellInteractionAttrs(rowIndex, colIndex),
+          onMouseDown: (e: React.MouseEvent) => cellInteraction.onCellMouseDown(e, rowIndex, colIndex),
+          onClick: (e: React.MouseEvent) => cellInteraction.onCellClick(e, rowIndex, colIndex),
+          isActive: cellInteraction.isActive(rowIndex, colIndex),
+          isInRange: cellInteraction.isInRange(rowIndex, colIndex),
+        };
+        const baseStyle: React.CSSProperties = { width: cell.column.getSize(), ...pinStyle };
         if (cell.getIsGrouped()) {
           return (
             <BodyCell
               key={cell.id}
               density={density}
               align={align}
-              style={{ width: cell.column.getSize(), paddingLeft: 8 + row.depth * 16 }}
+              style={{ ...baseStyle, paddingLeft: 8 + row.depth * 16 }}
+              {...interactionProps}
             >
               <GroupCellInner
                 role="button"
@@ -324,23 +577,54 @@ function DataRow<T>({
           );
         }
         if (cell.getIsAggregated()) {
-          // Only render an aggregated cell when the column opted in via meta.aggregationFn.
-          // Otherwise TanStack would surface the raw underlying value (or join of values),
-          // which is rarely useful and visually noisy.
           if (!meta?.aggregationFn) {
             return (
-              <BodyCell key={cell.id} density={density} align={align} style={{ width: cell.column.getSize() }} />
+              <BodyCell
+                key={cell.id}
+                density={density}
+                align={align}
+                style={{ width: cell.column.getSize() }}
+                {...interactionProps}
+              />
             );
           }
           const aggCell = cell.column.columnDef.aggregatedCell ?? cell.column.columnDef.cell;
           return (
-            <BodyCell key={cell.id} density={density} align={align} style={{ width: cell.column.getSize() }}>
+            <BodyCell
+              key={cell.id}
+              density={density}
+              align={align}
+              style={baseStyle}
+              {...interactionProps}
+            >
               <em>{flexRender(aggCell, cell.getContext())}</em>
             </BodyCell>
           );
         }
         if (cell.getIsPlaceholder()) {
-          return <BodyCell key={cell.id} density={density} align={align} style={{ width: cell.column.getSize() }} />;
+          return (
+            <BodyCell
+              key={cell.id}
+              density={density}
+              align={align}
+              style={baseStyle}
+              {...interactionProps}
+            />
+          );
+        }
+        const visible = row.getVisibleCells();
+        const firstDataColIdx = visible[0]?.column.id === SELECTION_COL_ID ? 1 : 0;
+        const showDetailChevron = !!canExpandDetail && colIndex === firstDataColIdx;
+        const classNames: string[] = [];
+        if (meta?.cellClassRules) {
+          const v = cell.getValue();
+          for (const [cls, predicate] of Object.entries(meta.cellClassRules)) {
+            try {
+              if (predicate(v, row.original)) classNames.push(cls);
+            } catch {
+              /* ignore */
+            }
+          }
         }
         const value = cell.getValue();
         // Only data (accessor) columns get the placeholder — display/action
@@ -348,10 +632,37 @@ function DataRow<T>({
         // otherwise read as "empty" and lose their custom cell.
         const isEmpty = !!cell.column.accessorFn && (value == null || value === '');
         return (
-          <BodyCell key={cell.id} density={density} align={align} style={{ width: cell.column.getSize() }}>
+          <BodyCell
+            key={cell.id}
+            density={density}
+            align={align}
+            style={baseStyle}
+            className={classNames.join(' ') || undefined}
+            {...interactionProps}
+          >
             {isEmpty ? (
               <Box component="span" sx={{ color: 'text.disabled' }}>
                 {emptyText}
+              </Box>
+            ) : showDetailChevron ? (
+              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                <Box
+                  component="span"
+                  role="button"
+                  aria-label={row.getIsExpanded() ? 'Collapse detail' : 'Expand detail'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    row.toggleExpanded();
+                  }}
+                  sx={{ cursor: 'pointer', display: 'inline-flex' }}
+                >
+                  {row.getIsExpanded() ? (
+                    <KeyboardArrowDownIcon fontSize="small" />
+                  ) : (
+                    <KeyboardArrowRightIcon fontSize="small" />
+                  )}
+                </Box>
+                {flexRender(cell.column.columnDef.cell, cell.getContext())}
               </Box>
             ) : (
               flexRender(cell.column.columnDef.cell, cell.getContext())

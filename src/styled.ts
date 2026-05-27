@@ -63,12 +63,22 @@ export const HeaderCell = styled(TableCell, {
 }));
 
 export const BodyCell = styled(TableCell, {
-  shouldForwardProp: (p) => p !== 'density' && p !== 'align',
-})<{ density: Density; align?: 'left' | 'right' | 'center' }>(({ density, align }) => ({
+  shouldForwardProp: (p) =>
+    p !== 'density' && p !== 'align' && p !== 'isActive' && p !== 'isInRange',
+})<{
+  density: Density;
+  align?: 'left' | 'right' | 'center';
+  isActive?: boolean;
+  isInRange?: boolean;
+}>(({ theme, density, align, isActive, isInRange }) => ({
   padding: densityToCellPadding[density],
   textAlign: align ?? 'left',
   borderBottom: '1px solid',
   borderColor: 'rgba(0,0,0,0.06)',
+  position: 'relative',
+  backgroundColor: isInRange ? theme.palette.action.selected : undefined,
+  boxShadow: isActive ? `inset 0 0 0 2px ${theme.palette.primary.main}` : undefined,
+  cursor: 'cell',
 }));
 
 export const BodyRow = styled(TableRow, {

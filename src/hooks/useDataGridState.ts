@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { createElement, useEffect, useMemo, useRef, useState } from 'react';
 import {
   getCoreRowModel,
   getExpandedRowModel,
@@ -20,6 +20,7 @@ import type {
   DataGridState,
   FilterVariant,
 } from '../types';
+import { Sparkline } from '../components/Sparkline';
 import { dateFilterFn } from '../components/filters/DateFilter';
 import { numberRangeFilterFn } from '../components/filters/NumberFilter';
 import { inListFilterFn } from '../components/filters/SelectFilter';
@@ -30,8 +31,9 @@ const DEFAULT_PAGE_SIZE = 25;
 // Default filterFn for each variant, used when a column doesn't supply its own.
 // `'includesString'` and `'equals'` are TanStack built-ins referenced by name.
 // Single `select` stores a scalar value (exact match); only `multiSelect` stores
-// an array, which is what inListFilterFn expects.
-const FILTER_FN_BY_VARIANT: Record<FilterVariant, FilterFn<unknown> | string> = {
+// an array, which is what inListFilterFn expects. `set` is handled separately by
+// attachSetFilterFn, so it is intentionally absent here (hence Partial).
+const FILTER_FN_BY_VARIANT: Partial<Record<FilterVariant, FilterFn<unknown> | string>> = {
   text: 'includesString',
   number: numberRangeFilterFn as unknown as FilterFn<unknown>,
   date: dateFilterFn as unknown as FilterFn<unknown>,
@@ -44,6 +46,8 @@ const defaultState: DataGridState = {
   sorting: [],
   columnFilters: [],
   columnVisibility: {},
+  columnOrder: [],
+  columnPinning: { left: [], right: [] },
   rowSelection: {},
   pagination: { pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE },
   grouping: [],
@@ -99,6 +103,7 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
     selection,
     enableMultiSort = true,
     enableColumnResizing = true,
+    enableColumnPinning = true,
     enableGrouping = true,
     initialState,
     state: controlledState,
@@ -115,6 +120,8 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
   const [sorting, setSorting] = useState(merged.sorting);
   const [columnFilters, setColumnFilters] = useState(merged.columnFilters);
   const [columnVisibility, setColumnVisibility] = useState(merged.columnVisibility);
+  const [columnOrder, setColumnOrder] = useState(merged.columnOrder);
+  const [columnPinning, setColumnPinning] = useState(merged.columnPinning);
   const [rowSelection, setRowSelection] = useState(merged.rowSelection);
   const [paginationState, setPagination] = useState(merged.pagination);
   const [grouping, setGrouping] = useState(merged.grouping);
@@ -135,6 +142,8 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
     sorting,
     columnFilters,
     columnVisibility,
+    columnOrder,
+    columnPinning,
     rowSelection,
     pagination: paginationState,
     grouping,
@@ -161,10 +170,16 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
   const enablePagination = pagination !== false;
 
   // `columns` is always a resolved def array here — DataGrid converts a
-  // serializable DataGridConfig before calling this hook.
+  // serializable DataGridConfig before calling this hook. Passes compose as:
+  // infer/wire variant filterFns → aggregations → set-filter fn → sparkline cell.
   const columnDefs = Array.isArray(columns) ? columns : [];
   const cols = useMemo(
-    () => attachAggregations(attachFilters(columnDefs, rows), aggregationOverrides),
+    () =>
+      attachSparklines(
+        attachSetFilterFn(
+          attachAggregations(attachFilters(columnDefs, rows), aggregationOverrides),
+        ),
+      ),
     [columnDefs, rows, aggregationOverrides],
   );
 
@@ -187,6 +202,8 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
       sorting,
       columnFilters,
       columnVisibility,
+      columnOrder,
+      columnPinning,
       rowSelection,
       pagination: paginationState,
       grouping,
@@ -197,6 +214,8 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnOrderChange: setColumnOrder,
+    onColumnPinningChange: setColumnPinning,
     onRowSelectionChange: setRowSelection,
     onPaginationChange: setPagination,
     onGroupingChange: setGrouping,
@@ -204,6 +223,7 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
     onGlobalFilterChange: setGlobalFilter,
     onColumnSizingChange: setColumnSizing,
     getRowId: getRowId ? (row, index) => getRowId(row, index) : undefined,
+    getRowCanExpand: props.renderDetailPanel ? () => true : undefined,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -212,6 +232,7 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
     getPaginationRowModel: enablePagination ? getPaginationRowModel() : undefined,
     enableMultiSort,
     enableColumnResizing,
+    enableColumnPinning,
     columnResizeMode: 'onChange',
     enableRowSelection: enableSelection,
     enableMultiRowSelection: enableSelection && selection?.mode === 'multi',
@@ -242,6 +263,8 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
       setSorting,
       setColumnFilters,
       setColumnVisibility,
+      setColumnOrder,
+      setColumnPinning,
       setRowSelection,
       setPagination,
       setGrouping,
@@ -265,7 +288,8 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
  * random rather than head-sampled, so data that already arrives sorted from an
  * endpoint doesn't bias the guess). For an inferred `select` we also derive the
  * option list when the consumer hasn't supplied one. Any column that already
- * declares its own `filterFn` keeps it.
+ * declares its own `filterFn` keeps it; the `set` variant is wired separately by
+ * attachSetFilterFn.
  */
 function attachFilters<T>(columns: DataGridColumnDef<T>[], rows: T[]): DataGridColumnDef<T>[] {
   return columns.map((c) => {
@@ -285,9 +309,50 @@ function attachFilters<T>(columns: DataGridColumnDef<T>[], rows: T[]): DataGridC
       filterVariant: variant,
       ...(options ? { filterOptions: options } : {}),
     };
-    const filterFn = c.filterFn ?? FILTER_FN_BY_VARIANT[variant];
+    const mapped = FILTER_FN_BY_VARIANT[variant];
+    const filterFn = c.filterFn ?? mapped;
 
-    return { ...c, meta: nextMeta, filterFn } as DataGridColumnDef<T>;
+    return {
+      ...c,
+      meta: nextMeta,
+      ...(filterFn ? { filterFn } : {}),
+    } as DataGridColumnDef<T>;
+  });
+}
+
+function attachSetFilterFn<T>(columns: DataGridColumnDef<T>[]): DataGridColumnDef<T>[] {
+  return columns.map((c) => {
+    const meta = c.meta as DataGridColumnMeta<T> | undefined;
+    if (meta?.filterVariant !== 'set' || c.filterFn) return c;
+    return {
+      ...c,
+      filterFn: (row, columnId, filterValue) => {
+        if (!Array.isArray(filterValue)) return true;
+        if (filterValue.length === 0) return false; // explicit "select nothing"
+        return (filterValue as unknown[]).some((v) => v === row.getValue(columnId));
+      },
+    } as DataGridColumnDef<T>;
+  });
+}
+
+function attachSparklines<T>(columns: DataGridColumnDef<T>[]): DataGridColumnDef<T>[] {
+  return columns.map((c) => {
+    const meta = c.meta as DataGridColumnMeta<T> | undefined;
+    const spark = meta?.sparkline;
+    if (!spark) return c;
+    // Sparkline columns shouldn't sort/filter by their raw array.
+    return {
+      ...c,
+      enableSorting: false,
+      enableColumnFilter: false,
+      cell: (info: { row: { original: T } }) => {
+        const values = spark.valueAccessor(info.row.original);
+        return createElement(Sparkline as React.FC<{ values: number[]; config: typeof spark }>, {
+          values,
+          config: spark,
+        });
+      },
+    } as DataGridColumnDef<T>;
   });
 }
 
@@ -312,4 +377,3 @@ function attachAggregations<T>(
     return { ...c, aggregationFn: fnName } as DataGridColumnDef<T>;
   });
 }
-

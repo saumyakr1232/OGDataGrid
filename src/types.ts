@@ -1,6 +1,8 @@
 import type {
   ColumnDef,
   ColumnFiltersState,
+  ColumnOrderState,
+  ColumnPinningState,
   GroupingState,
   PaginationState,
   RowSelectionState,
@@ -20,7 +22,8 @@ export type FilterVariant =
   | 'date'
   | 'select'
   | 'multiSelect'
-  | 'boolean';
+  | 'boolean'
+  | 'set';
 
 export type AggregationFn =
   | 'sum'
@@ -39,9 +42,25 @@ export interface DataGridColumnMeta<T = unknown> {
   exportValue?: (row: T) => string | number | null | undefined;
   hideable?: boolean;
   resizable?: boolean;
+  reorderable?: boolean;
+  pinnable?: boolean;
   groupable?: boolean;
   aggregationFn?: AggregationFn;
   aggregatedCell?: (info: { value: unknown; rowCount: number }) => ReactNode;
+  sparkline?: SparklineConfig<T>;
+  cellClassRules?: Record<string, (value: unknown, row: T) => boolean>;
+}
+
+export type SparklineType = 'line' | 'bar' | 'area' | 'winLoss';
+export interface SparklineConfig<T = unknown> {
+  type: SparklineType;
+  valueAccessor: (row: T) => number[];
+  color?: string | ((values: number[]) => string);
+  showTooltip?: boolean;
+  thresholds?: { positive?: string; negative?: string };
+  height?: number;
+  width?: number;
+  engine?: 'svg' | 'echarts';
 }
 
 export type DataGridColumnDef<T> = ColumnDef<T, unknown> & {
@@ -113,6 +132,8 @@ export interface DataGridState {
   sorting: SortingState;
   columnFilters: ColumnFiltersState;
   columnVisibility: VisibilityState;
+  columnOrder: ColumnOrderState;
+  columnPinning: ColumnPinningState;
   rowSelection: RowSelectionState;
   pagination: PaginationState;
   grouping: GroupingState;
@@ -144,7 +165,10 @@ export interface DataGridProps<T> {
   selection?: SelectionOptions;
   enableMultiSort?: boolean;
   enableColumnResizing?: boolean;
+  enableColumnReorder?: boolean;
+  enableColumnPinning?: boolean;
   enableGrouping?: boolean;
+  enableDragToGroup?: boolean;
   enableVirtualization?: boolean;
 
   density?: Density;
@@ -165,6 +189,22 @@ export interface DataGridProps<T> {
 
   enableCsvExport?: boolean;
   csvFileName?: string;
+
+  enableKeyboardNavigation?: boolean;
+  enableRangeSelection?: boolean;
+  enableClipboardCopy?: boolean;
+  onClipboardCopy?: (text: string) => void;
+  enableStatusBar?: boolean;
+  enableCharts?: boolean;
+  enableExcelExport?: boolean;
+  excelFileName?: string;
+  enablePivot?: boolean;
+  /** When provided, leaf rows get an expand chevron and the returned node renders below the row. */
+  renderDetailPanel?: (row: T) => ReactNode;
+  /** Optional list of "pinned" rows rendered above the body, e.g. for totals. */
+  pinnedRowsTop?: T[];
+  /** Optional list of "pinned" rows rendered below the body, e.g. for totals. */
+  pinnedRowsBottom?: T[];
 }
 
 export type DataGridTable<T> = Table<T>;
