@@ -24,9 +24,12 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import LinkIcon from '@mui/icons-material/Link';
+import LinkOffIcon from '@mui/icons-material/LinkOff';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Table } from '@tanstack/react-table';
+import type { Row, Table } from '@tanstack/react-table';
 import type { AggregationFn } from '../types';
+import type { CellRange } from '../hooks/useCellInteraction';
 import { buildEChartsOption, type ChartConfig, type ChartType } from '../charts/buildOption';
 
 const CHART_TYPES: { value: ChartType; label: string }[] = [
@@ -58,19 +61,33 @@ export function ChartDialog<T>({
   /** Bumped whenever upstream grid state (filter/sort/group/pagination) changes.
    *  The chart re-renders only when this changes (cheap) or config changes. */
   gridStateVersion,
+  /** The selected cell range at the moment this dialog opened, if any. When
+   *  provided the chart starts in "linked" mode: it restricts data to the
+   *  range and follows further selection changes via `getLiveRange`. */
+  linkedRange,
+  /** Returns the *current* selection range so the chart can follow it while
+   *  linked. Called on every gridStateVersion change. */
+  getLiveRange,
 }: {
   open: boolean;
   onClose: () => void;
   table: Table<T>;
   initialConfig?: Partial<ChartConfig>;
   gridStateVersion: number;
+  linkedRange?: CellRange | null;
+  getLiveRange?: () => CellRange | null;
 }) {
   const leafCols = table.getAllLeafColumns().filter((c) => !c.id.startsWith('__'));
+  const isNumericLike = (v: unknown) => {
+    if (v instanceof Date) return false;
+    if (typeof v === 'number') return !Number.isNaN(v);
+    if (v == null || v === '' || typeof v === 'boolean') return false;
+    return !Number.isNaN(Number(v));
+  };
   const numericLikeCols = leafCols.filter((c) => {
     const sample = table.getRowModel().rows[0];
     if (!sample) return true;
-    const v = sample.getValue(c.id);
-    return typeof v === 'number' || (v != null && !Number.isNaN(Number(v)));
+    return isNumericLike(sample.getValue(c.id));
   });
 
   const [config, setConfig] = useState<ChartConfig>(() => ({
@@ -84,6 +101,38 @@ export function ChartDialog<T>({
     downsample: initialConfig?.downsample ?? true,
     maxPoints: initialConfig?.maxPoints ?? 500,
   }));
+
+  // Linked = chart follows the live selection range. User can Detach to freeze.
+  const [linked, setLinked] = useState<boolean>(!!linkedRange);
+  const [snapshotRange, setSnapshotRange] = useState<CellRange | null>(linkedRange ?? null);
+
+  const effectiveRange: CellRange | null = useMemo(() => {
+    if (!linked) return snapshotRange;
+    return getLiveRange?.() ?? linkedRange ?? snapshotRange;
+    // include gridStateVersion so the memo recomputes when selection changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linked, gridStateVersion, snapshotRange, linkedRange]);
+
+  // Restrict rows to the effective range (if any). Read against the table's
+  // current row model so sort/filter/grouping still applies.
+  const rangeRows = useMemo<Row<T>[] | undefined>(() => {
+    if (!effectiveRange) return undefined;
+    const all = table.getRowModel().rows;
+    return all.slice(effectiveRange.startRow, effectiveRange.endRow + 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveRange, gridStateVersion, table]);
+
+  // Restrict the set of columns the user can pick (when ranged) to those in
+  // the range. We don't FORCE the picker to those — but we filter the option
+  // list so picking outside-the-range cols isn't possible while linked.
+  const rangeColIds = useMemo<string[] | null>(() => {
+    if (!effectiveRange) return null;
+    const vis = table.getVisibleLeafColumns();
+    return vis
+      .slice(effectiveRange.startCol, effectiveRange.endCol + 1)
+      .map((c) => c.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveRange, gridStateVersion, table]);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<import('echarts').ECharts | null>(null);
@@ -105,12 +154,12 @@ export function ChartDialog<T>({
     };
   }, [open]);
 
-  // Render / update on config or grid state change.
+  // Render / update on config, grid state, or range change.
   useEffect(() => {
     if (!loaded || !chartRef.current) return;
-    const option = buildEChartsOption(table, config) as unknown as Parameters<import('echarts').ECharts['setOption']>[0];
+    const option = buildEChartsOption(table, config, rangeRows) as unknown as Parameters<import('echarts').ECharts['setOption']>[0];
     chartRef.current.setOption(option, true);
-  }, [loaded, table, config, gridStateVersion]);
+  }, [loaded, table, config, gridStateVersion, rangeRows]);
 
   // Resize on container resize.
   useEffect(() => {
@@ -144,13 +193,44 @@ export function ChartDialog<T>({
 
   const copyConfig = async () => {
     if (!chartRef.current) return;
-    const opt = buildEChartsOption(table, config);
+    const opt = buildEChartsOption(table, config, rangeRows);
     try {
       await navigator.clipboard.writeText(JSON.stringify(opt, null, 2));
     } catch {
       /* ignore */
     }
   };
+
+  const detach = () => {
+    setSnapshotRange(effectiveRange);
+    setLinked(false);
+  };
+
+  // When a range is supplied (now or later) and we're linked, auto-pre-fill the
+  // picker with sensible defaults:
+  //   - category = first column in the range (typically the row label)
+  //   - series   = remaining numeric-looking columns in the range
+  // The user can still override.
+  useEffect(() => {
+    if (!linked || !rangeColIds || rangeColIds.length === 0) return;
+    const [first, ...rest] = rangeColIds;
+    setConfig((c) => {
+      const restNumeric = rest.filter((id) => {
+        const sample = table.getRowModel().rows[0];
+        if (!sample) return true;
+        return isNumericLike(sample.getValue(id));
+      });
+      // If the user already configured columns outside the range, snap them
+      // back into the range.
+      const inRange = (id: string) => rangeColIds.includes(id);
+      const nextCategory = inRange(c.categoryCol) ? c.categoryCol : first;
+      const nextSeries = c.seriesCols.filter(inRange);
+      const seriesSeed = nextSeries.length > 0 ? nextSeries : restNumeric.length > 0 ? restNumeric : [first];
+      return { ...c, categoryCol: nextCategory, seriesCols: seriesSeed };
+    });
+    // intentionally re-run when the range membership changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linked, rangeColIds?.join('|')]);
 
   const update = <K extends keyof ChartConfig>(k: K, v: ChartConfig[K]) =>
     setConfig((c) => ({ ...c, [k]: v }));
@@ -189,6 +269,19 @@ export function ChartDialog<T>({
             fullWidth
           />
         </Box>
+        {(linkedRange || snapshotRange) && (
+          <Tooltip
+            title={
+              linked
+                ? 'Linked to the live selection range. Click to freeze a snapshot.'
+                : 'Detached — chart no longer follows the grid selection.'
+            }
+          >
+            <IconButton onClick={linked ? detach : () => setLinked(true)} size="small" color={linked ? 'primary' : 'default'}>
+              {linked ? <LinkIcon /> : <LinkOffIcon />}
+            </IconButton>
+          </Tooltip>
+        )}
         <Tooltip title="Export PNG">
           <IconButton onClick={exportPng} size="small"><FileDownloadIcon /></IconButton>
         </Tooltip>
@@ -223,7 +316,10 @@ export function ChartDialog<T>({
                 value={config.categoryCol}
                 onChange={(e) => update('categoryCol', String(e.target.value))}
               >
-                {leafCols.map((c) => (
+                {(linked && rangeColIds
+                  ? leafCols.filter((c) => rangeColIds.includes(c.id))
+                  : leafCols
+                ).map((c) => (
                   <MenuItem key={c.id} value={c.id}>{headerLabel(c.id)}</MenuItem>
                 ))}
               </Select>
@@ -245,7 +341,10 @@ export function ChartDialog<T>({
                   return arr.length === 0 ? seriesPlaceholder : arr.map(headerLabel).join(', ');
                 }}
               >
-                {numericLikeCols.map((c) => (
+                {(linked && rangeColIds
+                  ? numericLikeCols.filter((c) => rangeColIds.includes(c.id))
+                  : numericLikeCols
+                ).map((c) => (
                   <MenuItem key={c.id} value={c.id}>
                     {!isPie && (
                       <Checkbox checked={config.seriesCols.includes(c.id)} size="small" sx={{ p: 0.5, mr: 1 }} />
@@ -316,7 +415,11 @@ export function ChartDialog<T>({
       </DialogContent>
       <DialogActions>
         <Typography variant="caption" color="text.secondary" sx={{ mr: 'auto', ml: 2 }}>
-          Chart respects the current grid filters, sort, grouping and pagination.
+          {effectiveRange && linked
+            ? `Linked to a ${effectiveRange.endRow - effectiveRange.startRow + 1} × ${effectiveRange.endCol - effectiveRange.startCol + 1} range — chart follows the selection until you detach.`
+            : effectiveRange
+              ? 'Detached snapshot — chart no longer follows the grid selection.'
+              : 'Chart respects the current grid filters, sort, grouping and pagination.'}
         </Typography>
         <Button onClick={onClose}>Close</Button>
       </DialogActions>

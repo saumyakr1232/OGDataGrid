@@ -54,6 +54,8 @@ npm i exceljs        # for Excel export
 - **Status bar** — selected count + sum/avg/min/max over numeric cells in the active range
 - **Sparklines** — inline mini-charts per cell (`line`, `bar`, `area`, `winLoss`) — hand-rolled SVG, no echarts overhead per row
 - **Charts (modal)** — `New chart` toolbar button opens a draggable MUI `Dialog`; supports `bar`, `stackedBar`, `line`, `area`, `pie`, `doughnut`, `scatter`; **echarts is peer-loaded lazily on first chart open**. Live re-renders as the user sorts/filters/groups. PNG export + JSON config copy.
+- **Chart from selection (AG-Grid style)** — select a range of cells then either right-click → **Chart range** or click the toolbar button which lights up as "Chart range". The dialog opens in *linked* mode: the chart restricts data + columns to the selection and updates as the user resizes the range. Toggle the link icon to **Detach** and freeze a snapshot. Category and series are auto-inferred from the range and stay editable.
+- **Cell context menu** — right-click on any cell to get *Chart range*, *Copy*, *Copy with headers*.
 - **Pivot** — drawer to pick row groups × column groups × value cols + aggregations; replaces the grid's data with a synthetic pivoted row model
 - **Excel export** — lazy-imports `exceljs`; emits `.xlsx` with frozen header + auto-filter
 - **Master-detail** — pass `renderDetailPanel(row)` and each row gets an expand chevron

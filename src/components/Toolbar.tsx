@@ -37,6 +37,7 @@ export function Toolbar<T>({
   onExportCsv,
   enableCharts,
   onNewChart,
+  hasRange,
   enableExcelExport,
   onExportExcel,
   enablePivot,
@@ -57,6 +58,7 @@ export function Toolbar<T>({
   onExportCsv: () => void;
   enableCharts: boolean;
   onNewChart: () => void;
+  hasRange?: boolean;
   enableExcelExport: boolean;
   onExportExcel: () => void;
   enablePivot: boolean;
@@ -132,9 +134,10 @@ export function Toolbar<T>({
           size="small"
           startIcon={<InsertChartIcon />}
           onClick={onNewChart}
-          variant="text"
+          variant={hasRange ? 'contained' : 'text'}
+          color={hasRange ? 'primary' : 'inherit'}
         >
-          New chart
+          {hasRange ? 'Chart range' : 'New chart'}
         </Button>
       )}
       <DensityMenu density={density} onChange={onDensityChange} />

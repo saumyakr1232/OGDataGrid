@@ -37,6 +37,7 @@ import { StatusBar } from './components/StatusBar';
 import { ChartDialog } from './components/ChartDialog';
 import { PivotPanel } from './components/PivotPanel';
 import { PinnedRows } from './components/PinnedRows';
+import { CellContextMenu, type CellContextMenuAnchor } from './components/CellContextMenu';
 import { buildPivot, type PivotConfig } from './pivot/buildPivot';
 import { exportTableToExcel } from './export/toExcel';
 import type { ChartConfig } from './charts/buildOption';
@@ -212,16 +213,22 @@ export function DataGrid<T>(props: DataGridProps<T>) {
   interface ChartInstance {
     id: string;
     initial?: Partial<ChartConfig>;
+    /** Range snapshot captured at the moment this chart was opened. When
+     *  present, the chart starts in "linked" mode and follows the live range. */
+    linkedRange?: { startRow: number; endRow: number; startCol: number; endCol: number } | null;
   }
   const [charts, setCharts] = useState<ChartInstance[]>([]);
   const chartIdRef = useRef(0);
-  const openChart = useCallback(() => {
+  const openChart = useCallback((rangeSnapshot?: ChartInstance['linkedRange']) => {
     chartIdRef.current += 1;
-    setCharts((prev) => [...prev, { id: `c${chartIdRef.current}` }]);
+    setCharts((prev) => [...prev, { id: `c${chartIdRef.current}`, linkedRange: rangeSnapshot ?? null }]);
   }, []);
   const closeChart = useCallback((id: string) => {
     setCharts((prev) => prev.filter((c) => c.id !== id));
   }, []);
+
+  // -- Cell context menu ----------------------------------------------------
+  const [contextMenu, setContextMenu] = useState<CellContextMenuAnchor | null>(null);
   // Bumped whenever state changes so open charts re-render against latest rows.
   const gridStateVersion = useMemo(
     () => JSON.stringify({
@@ -332,7 +339,8 @@ export function DataGrid<T>(props: DataGridProps<T>) {
           enableCsvExport={enableCsvExport}
           onExportCsv={handleExport}
           enableCharts={enableCharts}
-          onNewChart={openChart}
+          onNewChart={() => openChart(cellInteraction.range ?? null)}
+          hasRange={!!cellInteraction.range}
           enableExcelExport={enableExcelExport}
           onExportExcel={handleExcelExport}
           enablePivot={enablePivot}
@@ -399,6 +407,10 @@ export function DataGrid<T>(props: DataGridProps<T>) {
                   cellInteraction={cellInteraction}
                   canExpandDetail={!!renderDetailPanel && !row.getIsGrouped()}
                   emptyText={emptyText}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setContextMenu({ x: e.clientX, y: e.clientY });
+                  }}
                 />,
               ];
               if (renderDetailPanel && isExpanded && !row.getIsGrouped()) {
@@ -498,10 +510,64 @@ export function DataGrid<T>(props: DataGridProps<T>) {
           table={table}
           initialConfig={c.initial}
           gridStateVersion={gridStateVersion}
+          linkedRange={c.linkedRange ?? null}
+          getLiveRange={() => cellInteraction.range}
         />
       ))}
+      <CellContextMenu
+        anchor={contextMenu}
+        onClose={() => setContextMenu(null)}
+        hasRange={!!cellInteraction.range}
+        onChartRange={() => openChart(cellInteraction.range ?? null)}
+        onCopy={() => {
+          void cellInteraction.copySelection();
+        }}
+        onCopyWithHeaders={() => {
+          // Reuse the standard CSV writer scoped to the range — simplest path
+          // to "copy with headers" without a second TSV builder. We turn it
+          // into a TSV-like string by replacing commas with tabs on rows
+          // that don't contain embedded commas. For richer cases the user can
+          // export CSV directly.
+          void copyRangeWithHeaders(table, cellInteraction.range);
+        }}
+      />
     </GridRoot>
   );
+}
+
+// Build a TSV from the selected range PLUS a header row, then put it on the
+// clipboard. Kept inline (single use-site) to avoid a second copy module.
+async function copyRangeWithHeaders<T>(
+  table: import('@tanstack/react-table').Table<T>,
+  range: { startRow: number; endRow: number; startCol: number; endCol: number } | null,
+) {
+  if (!range) return;
+  const rows = table.getRowModel().rows;
+  const cols = table.getVisibleLeafColumns();
+  const lines: string[] = [];
+  const headerRow: string[] = [];
+  for (let c = range.startCol; c <= range.endCol; c++) {
+    headerRow.push(String(cols[c]?.columnDef.header ?? cols[c]?.id ?? ''));
+  }
+  lines.push(headerRow.join('\t'));
+  for (let r = range.startRow; r <= range.endRow; r++) {
+    const row = rows[r];
+    if (!row) continue;
+    const out: string[] = [];
+    for (let c = range.startCol; c <= range.endCol; c++) {
+      const col = cols[c];
+      if (!col) continue;
+      const raw = row.getValue(col.id);
+      out.push(raw == null ? '' : String(raw).replace(/\t/g, ' ').replace(/\r?\n/g, ' '));
+    }
+    lines.push(out.join('\t'));
+  }
+  const text = lines.join('\n');
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    /* ignore */
+  }
 }
 
 function DataRow<T>({
@@ -511,6 +577,7 @@ function DataRow<T>({
   cellInteraction,
   canExpandDetail,
   emptyText,
+  onContextMenu,
 }: {
   row: Row<T>;
   rowIndex: number;
@@ -518,6 +585,7 @@ function DataRow<T>({
   cellInteraction: ReturnType<typeof useCellInteraction<T>>;
   canExpandDetail?: boolean;
   emptyText: ReactNode;
+  onContextMenu?: (e: React.MouseEvent, rowIndex: number, colIndex: number) => void;
 }) {
   const isAgg = row.getIsGrouped();
   return (
@@ -545,6 +613,10 @@ function DataRow<T>({
           ...cellInteractionAttrs(rowIndex, colIndex),
           onMouseDown: (e: React.MouseEvent) => cellInteraction.onCellMouseDown(e, rowIndex, colIndex),
           onClick: (e: React.MouseEvent) => cellInteraction.onCellClick(e, rowIndex, colIndex),
+          onContextMenu: (e: React.MouseEvent) => {
+            cellInteraction.onCellContextMenu(e, rowIndex, colIndex);
+            onContextMenu?.(e, rowIndex, colIndex);
+          },
           isActive: cellInteraction.isActive(rowIndex, colIndex),
           isInRange: cellInteraction.isInRange(rowIndex, colIndex),
         };
