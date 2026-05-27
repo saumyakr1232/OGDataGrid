@@ -1,0 +1,138 @@
+import type {
+  ColumnDef,
+  ColumnFiltersState,
+  GroupingState,
+  PaginationState,
+  RowSelectionState,
+  SortingState,
+  Table,
+  VisibilityState,
+  ExpandedState,
+} from '@tanstack/react-table';
+import type { ReactNode } from 'react';
+
+export type Density = 'compact' | 'standard' | 'comfortable';
+
+export type FilterVariant =
+  | 'text'
+  | 'number'
+  | 'date'
+  | 'select'
+  | 'multiSelect'
+  | 'boolean';
+
+export type AggregationFn =
+  | 'sum'
+  | 'avg'
+  | 'min'
+  | 'max'
+  | 'count'
+  | 'uniqueCount'
+  | 'unique';
+
+export interface DataGridColumnMeta<T = unknown> {
+  filterVariant?: FilterVariant;
+  filterOptions?: { label: string; value: unknown }[];
+  align?: 'left' | 'right' | 'center';
+  headerTooltip?: string;
+  exportValue?: (row: T) => string | number | null | undefined;
+  hideable?: boolean;
+  resizable?: boolean;
+  groupable?: boolean;
+  aggregationFn?: AggregationFn;
+  aggregatedCell?: (info: { value: unknown; rowCount: number }) => ReactNode;
+}
+
+export type DataGridColumnDef<T> = ColumnDef<T, unknown> & {
+  meta?: DataGridColumnMeta<T>;
+};
+
+export interface PaginationOptions {
+  mode?: 'client';
+  pageSize?: number;
+  pageSizeOptions?: number[];
+}
+
+export interface SelectionOptions {
+  mode: 'single' | 'multi';
+  onChange?: (selectedRowIds: string[]) => void;
+}
+
+export interface DataGridSlots {
+  loadingOverlay?: ReactNode;
+  noRowsOverlay?: ReactNode;
+  errorOverlay?: ReactNode;
+  toolbarExtras?: ReactNode;
+}
+
+export interface AdvancedFilterRule {
+  id: string;
+  columnId: string;
+  op:
+    | 'equals'
+    | 'notEquals'
+    | 'contains'
+    | 'notContains'
+    | 'startsWith'
+    | 'endsWith'
+    | 'gt'
+    | 'gte'
+    | 'lt'
+    | 'lte'
+    | 'between'
+    | 'inList'
+    | 'isEmpty'
+    | 'isNotEmpty';
+  value?: unknown;
+  value2?: unknown;
+}
+
+export interface AdvancedFilterGroup {
+  id: string;
+  combinator: 'AND' | 'OR';
+  rules: (AdvancedFilterRule | AdvancedFilterGroup)[];
+}
+
+export interface DataGridState {
+  sorting: SortingState;
+  columnFilters: ColumnFiltersState;
+  columnVisibility: VisibilityState;
+  rowSelection: RowSelectionState;
+  pagination: PaginationState;
+  grouping: GroupingState;
+  expanded: ExpandedState;
+  globalFilter: string;
+  advancedFilter: AdvancedFilterGroup | null;
+  columnSizing: Record<string, number>;
+  showFilters: boolean;
+  density: Density;
+}
+
+export interface DataGridProps<T> {
+  columns: DataGridColumnDef<T>[];
+  rows: T[];
+  getRowId?: (row: T, index: number) => string;
+  loading?: boolean;
+  error?: ReactNode;
+
+  pagination?: PaginationOptions | false;
+  selection?: SelectionOptions;
+  enableMultiSort?: boolean;
+  enableColumnResizing?: boolean;
+  enableGrouping?: boolean;
+  enableVirtualization?: boolean;
+
+  density?: Density;
+  initialState?: Partial<DataGridState>;
+  state?: Partial<DataGridState>;
+  onStateChange?: (state: DataGridState) => void;
+
+  slots?: DataGridSlots;
+  height?: number | string;
+  className?: string;
+
+  enableCsvExport?: boolean;
+  csvFileName?: string;
+}
+
+export type DataGridTable<T> = Table<T>;
