@@ -246,6 +246,7 @@ export function DataGrid<T>(props: DataGridProps<T>) {
   ).length;
 
   const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const rowModel = table.getRowModel();
   const rowHeight = densityToRowHeight[state.density];
 
@@ -278,6 +279,7 @@ export function DataGrid<T>(props: DataGridProps<T>) {
     virtualizer: useVirtual ? virtualizer : null,
     enabled: enableKeyboardNavigation || enableRangeSelection || enableClipboardCopy,
     scrollerRef,
+    rootRef,
     pageSize: paginating
       ? table.getState().pagination.pageSize
       : Math.max(1, Math.floor((typeof height === 'number' ? height : 600) / rowHeight)),
@@ -319,6 +321,7 @@ export function DataGrid<T>(props: DataGridProps<T>) {
 
   return (
     <GridRoot
+      ref={rootRef}
       className={className}
       sx={{ height }}
       tabIndex={0}

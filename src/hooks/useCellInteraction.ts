@@ -46,6 +46,7 @@ export function useCellInteraction<T>({
   enabled = true,
   onCopy,
   scrollerRef,
+  rootRef,
   pageSize,
 }: {
   table: Table<T>;
@@ -53,6 +54,7 @@ export function useCellInteraction<T>({
   enabled?: boolean;
   onCopy?: (text: string) => void;
   scrollerRef: React.RefObject<HTMLDivElement | null>;
+  rootRef?: React.RefObject<HTMLElement | null>;
   pageSize: number;
 }): UseCellInteractionResult {
   const [active, setActiveState] = useState<CellPos | null>(null);
@@ -188,6 +190,32 @@ export function useCellInteraction<T>({
     document.addEventListener('mouseup', stop);
     return () => document.removeEventListener('mouseup', stop);
   }, [enabled]);
+
+  // Clear the cell selection when the user clicks anywhere outside the grid.
+  // Clicks inside the grid (cells, header, toolbar) are left alone — cell
+  // clicks manage the range themselves. Clicks inside MUI portal layers
+  // (context menu, chart dialog, column/filter menus) are ignored so their
+  // actions can still read the live range before it's cleared.
+  useEffect(() => {
+    if (!enabled) return;
+    const onDocMouseDown = (e: MouseEvent) => {
+      if (e.button !== 0) return;
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (rootRef?.current?.contains(target)) return;
+      if (
+        target.closest(
+          '[role="menu"], [role="dialog"], [role="listbox"], [role="tooltip"], .MuiPopover-root, .MuiModal-root',
+        )
+      ) {
+        return;
+      }
+      setActiveState(null);
+      setAnchor(null);
+    };
+    document.addEventListener('mousedown', onDocMouseDown);
+    return () => document.removeEventListener('mousedown', onDocMouseDown);
+  }, [enabled, rootRef]);
 
   const onCellMouseDown = useCallback(
     (e: React.MouseEvent, rowIndex: number, colIndex: number) => {

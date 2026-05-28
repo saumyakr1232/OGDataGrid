@@ -6,10 +6,12 @@ export type ChartType = 'bar' | 'stackedBar' | 'line' | 'area' | 'pie' | 'doughn
 export interface ChartConfig {
   type: ChartType;
   title?: string;
-  categoryCol: string;
-  seriesCols: string[];          // numeric value columns
+  categoryCol: string;           // X-axis column (or "group by" for scatter)
+  seriesCols: string[];          // Y-axis numeric value columns
   splitByCol?: string;           // optional: pivot one numeric column across distinct values
   aggregation: AggregationFn;
+  xName?: string;                // optional X-axis title (defaults to the column header)
+  yName?: string;                // optional Y-axis title (defaults to the value label)
   legend?: boolean;
   downsample?: boolean;
   maxPoints?: number;            // when downsampling
@@ -80,10 +82,26 @@ export function buildEChartsOption<T>(
   rangeRows?: Row<T>[],
 ): ChartOption {
   const rows = rangeRows ?? table.getRowModel().rows;
+  const header = (id: string) => String(table.getColumn(id)?.columnDef.header ?? id);
   const maxPoints = cfg.maxPoints ?? 500;
   const useDownsample = cfg.downsample !== false && rows.length > maxPoints;
 
   const dataRows: Row<T>[] = useDownsample ? downsampleArr(rows, maxPoints) : rows;
+
+  // Resolve axis titles. Default to the chosen column headers (or aggregation
+  // label) when the user hasn't typed an explicit axis name.
+  const axisNames =
+    cfg.type === 'scatter'
+      ? {
+          x: cfg.xName ?? (cfg.seriesCols[0] ? header(cfg.seriesCols[0]) : ''),
+          y: cfg.yName ?? (cfg.seriesCols[1] ?? cfg.seriesCols[0] ? header(cfg.seriesCols[1] ?? cfg.seriesCols[0]) : ''),
+        }
+      : {
+          x: cfg.xName ?? header(cfg.categoryCol),
+          y:
+            cfg.yName ??
+            (cfg.seriesCols.length === 1 ? `${cfg.aggregation} of ${header(cfg.seriesCols[0])}` : 'Value'),
+        };
 
   // Group by category column → build series.
   const buckets = new Map<string, Row<T>[]>();
@@ -152,7 +170,7 @@ export function buildEChartsOption<T>(
   if (cfg.type === 'pie' || cfg.type === 'doughnut') {
     const valueCol = cfg.seriesCols[0];
     if (!valueCol) {
-      return baseOption(cfg, [], categories);
+      return baseOption(cfg, [], categories, axisNames);
     }
     const pieData = categories.map((cat) => {
       const bucket = buckets.get(cat) ?? [];
@@ -194,7 +212,7 @@ export function buildEChartsOption<T>(
     ];
   }
 
-  return baseOption(cfg, series, categories);
+  return baseOption(cfg, series, categories, axisNames);
 }
 
 function cartesianType(t: ChartType): 'bar' | 'line' {
@@ -202,7 +220,12 @@ function cartesianType(t: ChartType): 'bar' | 'line' {
   return 'bar';
 }
 
-function baseOption(cfg: ChartConfig, series: ChartSeries[], categories: string[]): ChartOption {
+function baseOption(
+  cfg: ChartConfig,
+  series: ChartSeries[],
+  categories: string[],
+  axisNames: { x: string; y: string },
+): ChartOption {
   const isCartesian =
     cfg.type === 'bar' ||
     cfg.type === 'stackedBar' ||
@@ -214,16 +237,27 @@ function baseOption(cfg: ChartConfig, series: ChartSeries[], categories: string[
     tooltip: { trigger: cfg.type === 'pie' || cfg.type === 'doughnut' ? 'item' : 'axis' },
     legend: cfg.legend !== false ? { top: 24 } : { show: false },
     series,
-    grid: isCartesian ? { left: 50, right: 16, bottom: 32, top: 64 } : undefined,
+    // Extra bottom/left padding leaves room for the axis name labels.
+    grid: isCartesian ? { left: 64, right: 24, bottom: 48, top: 64 } : undefined,
     animation: true,
   };
   if (isCartesian) {
+    const xName = {
+      name: axisNames.x,
+      nameLocation: 'middle' as const,
+      nameGap: 28,
+    };
+    const yName = {
+      name: axisNames.y,
+      nameLocation: 'middle' as const,
+      nameGap: 44,
+    };
     if (cfg.type === 'scatter') {
-      opt.xAxis = { type: 'value' };
-      opt.yAxis = { type: 'value' };
+      opt.xAxis = { type: 'value', ...xName };
+      opt.yAxis = { type: 'value', ...yName };
     } else {
-      opt.xAxis = { type: 'category', data: categories };
-      opt.yAxis = { type: 'value' };
+      opt.xAxis = { type: 'category', data: categories, ...xName };
+      opt.yAxis = { type: 'value', ...yName };
     }
   }
   return opt;

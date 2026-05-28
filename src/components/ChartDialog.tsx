@@ -89,29 +89,51 @@ export function ChartDialog<T>({
     if (!sample) return true;
     return isNumericLike(sample.getValue(c.id));
   });
+  // A good default X-axis is a categorical (non-numeric) column; fall back to
+  // the first column if every column looks numeric.
+  const firstCategoricalCol =
+    leafCols.find((c) => !numericLikeCols.includes(c)) ?? leafCols[0];
+
+  // A 1×1 selection (a single active cell) isn't a meaningful range to chart —
+  // treat it as "no range" so we don't force both axes onto one column.
+  const isMeaningfulRange = (r: CellRange | null | undefined): r is CellRange =>
+    !!r && (r.endRow > r.startRow || r.endCol > r.startCol);
 
   const [config, setConfig] = useState<ChartConfig>(() => ({
     type: initialConfig?.type ?? 'bar',
     title: initialConfig?.title ?? '',
-    categoryCol: initialConfig?.categoryCol ?? leafCols[0]?.id ?? '',
+    categoryCol: initialConfig?.categoryCol ?? firstCategoricalCol?.id ?? leafCols[0]?.id ?? '',
     seriesCols: initialConfig?.seriesCols ?? (numericLikeCols[0] ? [numericLikeCols[0].id] : []),
     splitByCol: initialConfig?.splitByCol,
     aggregation: initialConfig?.aggregation ?? 'sum',
+    xName: initialConfig?.xName,
+    yName: initialConfig?.yName,
     legend: initialConfig?.legend ?? true,
     downsample: initialConfig?.downsample ?? true,
     maxPoints: initialConfig?.maxPoints ?? 500,
   }));
 
   // Linked = chart follows the live selection range. User can Detach to freeze.
-  const [linked, setLinked] = useState<boolean>(!!linkedRange);
-  const [snapshotRange, setSnapshotRange] = useState<CellRange | null>(linkedRange ?? null);
+  const [linked, setLinked] = useState<boolean>(isMeaningfulRange(linkedRange));
+  const [snapshotRange, setSnapshotRange] = useState<CellRange | null>(
+    isMeaningfulRange(linkedRange) ? linkedRange : null,
+  );
+
+  // Snapshot of the live range, refreshed every render. Serializing it gives the
+  // memo below a dependency that actually changes when the selection moves
+  // (gridStateVersion only tracks sort/filter/group, not the cell range).
+  const liveRange = linked ? getLiveRange?.() ?? null : null;
+  const liveRangeKey = liveRange
+    ? `${liveRange.startRow},${liveRange.endRow},${liveRange.startCol},${liveRange.endCol}`
+    : '';
 
   const effectiveRange: CellRange | null = useMemo(() => {
-    if (!linked) return snapshotRange;
-    return getLiveRange?.() ?? linkedRange ?? snapshotRange;
-    // include gridStateVersion so the memo recomputes when selection changes
+    if (!linked) return isMeaningfulRange(snapshotRange) ? snapshotRange : null;
+    if (isMeaningfulRange(liveRange)) return liveRange;
+    return isMeaningfulRange(linkedRange) ? linkedRange : null;
+    // liveRangeKey stands in for liveRange; gridStateVersion keeps row-model reads fresh.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [linked, gridStateVersion, snapshotRange, linkedRange]);
+  }, [linked, liveRangeKey, gridStateVersion, snapshotRange, linkedRange]);
 
   // Restrict rows to the effective range (if any). Read against the table's
   // current row model so sort/filter/grouping still applies.
@@ -225,7 +247,19 @@ export function ChartDialog<T>({
       const inRange = (id: string) => rangeColIds.includes(id);
       const nextCategory = inRange(c.categoryCol) ? c.categoryCol : first;
       const nextSeries = c.seriesCols.filter(inRange);
-      const seriesSeed = nextSeries.length > 0 ? nextSeries : restNumeric.length > 0 ? restNumeric : [first];
+      // Prefer numeric columns for the Y-axis. If the range has none, keep the
+      // user's current selection (or the numeric default) rather than forcing a
+      // non-numeric column, which would render an empty chart.
+      const seriesSeed =
+        nextSeries.length > 0
+          ? nextSeries
+          : restNumeric.length > 0
+            ? restNumeric
+            : c.seriesCols.length > 0
+              ? c.seriesCols
+              : numericLikeCols[0]
+                ? [numericLikeCols[0].id]
+                : [first];
       return { ...c, categoryCol: nextCategory, seriesCols: seriesSeed };
     });
     // intentionally re-run when the range membership changes
@@ -239,6 +273,25 @@ export function ChartDialog<T>({
   const isScatter = config.type === 'scatter';
   const headerLabel = (id: string) =>
     String(table.getColumn(id)?.columnDef.header ?? id);
+
+  // Generic, axis-oriented control labels.
+  const categoryLabel = isScatter ? 'Group by (optional)' : isPie ? 'Category' : 'X-axis';
+  const seriesLabel = isPie ? 'Value' : isScatter ? 'X then Y columns' : 'Y-axis';
+
+  // Default axis-name placeholders mirror what buildOption renders when the
+  // user leaves the axis-name fields blank.
+  const xAxisPlaceholder = isScatter
+    ? config.seriesCols[0]
+      ? headerLabel(config.seriesCols[0])
+      : 'X'
+    : headerLabel(config.categoryCol);
+  const yAxisPlaceholder = isScatter
+    ? config.seriesCols[1] ?? config.seriesCols[0]
+      ? headerLabel(config.seriesCols[1] ?? config.seriesCols[0])
+      : 'Y'
+    : config.seriesCols.length === 1
+      ? `${config.aggregation} of ${headerLabel(config.seriesCols[0])}`
+      : 'Value';
 
   const seriesPlaceholder = useMemo(
     () =>
@@ -269,7 +322,7 @@ export function ChartDialog<T>({
             fullWidth
           />
         </Box>
-        {(linkedRange || snapshotRange) && (
+        {(isMeaningfulRange(linkedRange) || snapshotRange) && (
           <Tooltip
             title={
               linked
@@ -310,9 +363,9 @@ export function ChartDialog<T>({
               </ToggleButtonGroup>
             </Box>
             <FormControl size="small" fullWidth>
-              <InputLabel>{isScatter ? 'Group by (optional)' : 'Category'}</InputLabel>
+              <InputLabel>{categoryLabel}</InputLabel>
               <Select
-                label={isScatter ? 'Group by (optional)' : 'Category'}
+                label={categoryLabel}
                 value={config.categoryCol}
                 onChange={(e) => update('categoryCol', String(e.target.value))}
               >
@@ -325,10 +378,10 @@ export function ChartDialog<T>({
               </Select>
             </FormControl>
             <FormControl size="small" fullWidth>
-              <InputLabel>{isPie ? 'Value' : 'Series'}</InputLabel>
+              <InputLabel>{seriesLabel}</InputLabel>
               <Select
                 multiple={!isPie}
-                label={isPie ? 'Value' : 'Series'}
+                label={seriesLabel}
                 value={isPie ? config.seriesCols[0] ?? '' : config.seriesCols}
                 onChange={(e) => {
                   const v = e.target.value;
@@ -354,6 +407,28 @@ export function ChartDialog<T>({
                 ))}
               </Select>
             </FormControl>
+            {!isPie && (
+              <>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="X-axis name"
+                  value={config.xName ?? ''}
+                  placeholder={xAxisPlaceholder}
+                  onChange={(e) => update('xName', e.target.value || undefined)}
+                  InputLabelProps={{ shrink: true }}
+                />
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Y-axis name"
+                  value={config.yName ?? ''}
+                  placeholder={yAxisPlaceholder}
+                  onChange={(e) => update('yName', e.target.value || undefined)}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </>
+            )}
             {!isPie && !isScatter && (
               <FormControl size="small" fullWidth>
                 <InputLabel>Split by (optional)</InputLabel>

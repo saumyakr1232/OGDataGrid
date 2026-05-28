@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import {
   getCoreRowModel,
@@ -32,6 +32,7 @@ function useHarness(opts?: {
   columns?: ColumnDef<Row>[];
   onCopy?: (text: string) => void;
   enabled?: boolean;
+  rootEl?: HTMLElement | null;
 }) {
   const columns = opts?.columns ?? defaultColumns;
   const table = useReactTable({
@@ -40,12 +41,14 @@ function useHarness(opts?: {
     getCoreRowModel: getCoreRowModel(),
   });
   const scrollerRef = useRef<HTMLDivElement | null>(document.createElement('div'));
+  const rootRef = useRef<HTMLElement | null>(opts?.rootEl ?? null);
   return useCellInteraction<Row>({
     table,
     virtualizer: null,
     enabled: opts?.enabled ?? true,
     onCopy: opts?.onCopy,
     scrollerRef,
+    rootRef,
     pageSize: 5,
   });
 }
@@ -317,6 +320,86 @@ describe('useCellInteraction', () => {
         startCol: 2,
         endCol: 2,
       });
+    });
+  });
+
+  describe('clicking outside clears selection', () => {
+    let root: HTMLElement;
+    const extras: HTMLElement[] = [];
+
+    beforeEach(() => {
+      root = document.createElement('div');
+      document.body.appendChild(root);
+    });
+
+    afterEach(() => {
+      root.remove();
+      extras.forEach((el) => el.remove());
+      extras.length = 0;
+    });
+
+    const dispatchMouseDown = (target: HTMLElement, button = 0) => {
+      act(() => {
+        target.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button }));
+      });
+    };
+
+    it('left mousedown outside the grid root clears active/anchor/range', () => {
+      const { result } = renderHook(() => useHarness({ rootEl: root }));
+      act(() => {
+        result.current.onCellMouseDown(mouseShim(), 1, 1);
+      });
+      expect(result.current.active).not.toBeNull();
+
+      const outside = document.createElement('div');
+      document.body.appendChild(outside);
+      extras.push(outside);
+      dispatchMouseDown(outside);
+
+      expect(result.current.active).toBeNull();
+      expect(result.current.anchor).toBeNull();
+      expect(result.current.range).toBeNull();
+    });
+
+    it('mousedown inside the grid root does NOT clear the selection', () => {
+      const { result } = renderHook(() => useHarness({ rootEl: root }));
+      act(() => {
+        result.current.onCellMouseDown(mouseShim(), 2, 1);
+      });
+      const inner = document.createElement('div');
+      root.appendChild(inner);
+      dispatchMouseDown(inner);
+
+      expect(result.current.active).toEqual({ rowIndex: 2, colIndex: 1 });
+    });
+
+    it('mousedown inside a portal layer (role="menu") does NOT clear the selection', () => {
+      const { result } = renderHook(() => useHarness({ rootEl: root }));
+      act(() => {
+        result.current.onCellMouseDown(mouseShim(), 0, 0);
+      });
+      const menu = document.createElement('div');
+      menu.setAttribute('role', 'menu');
+      const item = document.createElement('div');
+      menu.appendChild(item);
+      document.body.appendChild(menu);
+      extras.push(menu);
+      dispatchMouseDown(item);
+
+      expect(result.current.active).toEqual({ rowIndex: 0, colIndex: 0 });
+    });
+
+    it('non-primary (right) button outside the grid does NOT clear the selection', () => {
+      const { result } = renderHook(() => useHarness({ rootEl: root }));
+      act(() => {
+        result.current.onCellMouseDown(mouseShim(), 3, 2);
+      });
+      const outside = document.createElement('div');
+      document.body.appendChild(outside);
+      extras.push(outside);
+      dispatchMouseDown(outside, 2);
+
+      expect(result.current.active).toEqual({ rowIndex: 3, colIndex: 2 });
     });
   });
 
