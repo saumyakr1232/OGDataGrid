@@ -79,6 +79,10 @@ export const BodyCell = styled(TableCell, {
   backgroundColor: isInRange ? theme.palette.action.selected : undefined,
   boxShadow: isActive ? `inset 0 0 0 2px ${theme.palette.primary.main}` : undefined,
   cursor: 'cell',
+  // Suppress native text selection — we own range selection. Without this,
+  // dragging across cells highlights the text instead of extending the range.
+  userSelect: 'none',
+  WebkitUserSelect: 'none',
 }));
 
 export const BodyRow = styled(TableRow, {

@@ -38,8 +38,12 @@
     "react-dom": "^18 || ^19"
   },
   "peerDependenciesMeta": {
-    "echarts": { "optional": true },
-    "exceljs": { "optional": true }
+    "echarts": {
+      "optional": true
+    },
+    "exceljs": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -56,6 +60,7 @@
     "@mui/x-date-pickers": "^7.22.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^25.9.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
@@ -64,6 +69,7 @@
     "dayjs": "^1.11.21",
     "echarts": "^6.1.0",
     "exceljs": "^4.4.0",
+    "jsdom": "^29.1.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "jsdom": "^29.1.1",

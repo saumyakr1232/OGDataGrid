@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Table } from '@tanstack/react-table';
 import type { Virtualizer } from '@tanstack/react-virtual';
 import type { DataGridColumnMeta } from '../types';
@@ -23,6 +23,7 @@ export interface UseCellInteractionResult {
   isInRange: (rowIndex: number, colIndex: number) => boolean;
   isActive: (rowIndex: number, colIndex: number) => boolean;
   onCellMouseDown: (e: React.MouseEvent, rowIndex: number, colIndex: number) => void;
+  onCellMouseEnter: (e: React.MouseEvent, rowIndex: number, colIndex: number) => void;
   onCellClick: (e: React.MouseEvent, rowIndex: number, colIndex: number) => void;
   onCellContextMenu: (e: React.MouseEvent, rowIndex: number, colIndex: number) => void;
   onKeyDown: (e: React.KeyboardEvent) => void;
@@ -172,21 +173,70 @@ export function useCellInteraction<T>({
     }
   }, [buildTsv, onCopy]);
 
+  // Tracks whether the user is currently mid-drag (left button held after a
+  // primary mousedown on a cell). We use a ref so the document-level mouseup
+  // listener can clear it without re-binding on every render.
+  const draggingRef = useRef(false);
+
+  // Install a document-level mouseup listener once, to end any in-progress
+  // drag even if the mouse is released outside the grid.
+  useEffect(() => {
+    if (!enabled) return;
+    const stop = () => {
+      draggingRef.current = false;
+    };
+    document.addEventListener('mouseup', stop);
+    return () => document.removeEventListener('mouseup', stop);
+  }, [enabled]);
+
   const onCellMouseDown = useCallback(
     (e: React.MouseEvent, rowIndex: number, colIndex: number) => {
       if (!enabled) return;
+      // Only the primary (left) button starts a drag-select. Right/middle
+      // clicks must NOT reset the range — otherwise right-clicking inside a
+      // selection wipes it before the context menu opens (mousedown fires
+      // before contextmenu).
+      if (e.button !== 0) return;
       // Ignore clicks on interactive elements (checkbox, button, link, input)
       const tag = (e.target as HTMLElement).closest('button, input, a, label, [role="button"]');
       if (tag) return;
+      // Prevent the browser's native text selection on drag — we own the
+      // selection model. preventDefault on mousedown also blocks the implicit
+      // focus shift, so we have to move keyboard focus to the grid container
+      // ourselves; otherwise arrow keys wouldn't work after a mouse click.
+      e.preventDefault();
+      const root = (e.currentTarget as HTMLElement).closest<HTMLElement>('[tabindex]');
+      root?.focus({ preventScroll: true });
       const c: CellPos = { rowIndex, colIndex };
-      if (e.shiftKey && active) {
+      if (e.shiftKey && anchor) {
+        // Shift+click extends the existing range from the anchor.
         setActiveState(c);
+        draggingRef.current = true;
         return;
       }
       setActiveState(c);
       setAnchor(c);
+      draggingRef.current = true;
     },
-    [enabled, active],
+    [enabled, anchor],
+  );
+
+  const onCellMouseEnter = useCallback(
+    (e: React.MouseEvent, rowIndex: number, colIndex: number) => {
+      if (!enabled) return;
+      if (!draggingRef.current) return;
+      // If the user released the button outside the grid and re-entered, the
+      // buttons bitmask will be 0 — clear our drag flag defensively.
+      if (e.buttons === 0) {
+        draggingRef.current = false;
+        return;
+      }
+      setActiveState((prev) => {
+        if (prev && prev.rowIndex === rowIndex && prev.colIndex === colIndex) return prev;
+        return { rowIndex, colIndex };
+      });
+    },
+    [enabled],
   );
 
   const onCellClick = useCallback(
@@ -200,6 +250,8 @@ export function useCellInteraction<T>({
     (_e: React.MouseEvent, rowIndex: number, colIndex: number) => {
       // If the right-click happened outside the current range, collapse the
       // range to just this cell so subsequent actions operate on it.
+      // (Right-click inside the range preserves it — that's the whole point of
+      // the context menu actions like "Chart range" / "Copy".)
       if (!isInRange(rowIndex, colIndex)) {
         const c: CellPos = { rowIndex, colIndex };
         setActiveState(c);
@@ -341,6 +393,7 @@ export function useCellInteraction<T>({
     isInRange,
     isActive,
     onCellMouseDown,
+    onCellMouseEnter,
     onCellClick,
     onCellContextMenu,
     onKeyDown,

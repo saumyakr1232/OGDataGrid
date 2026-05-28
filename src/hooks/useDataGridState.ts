@@ -110,8 +110,25 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
     onStateChange,
   } = props;
 
+  // Seed pagination from the `pagination` prop when an initial slice isn't
+  // supplied. Without this, `<DataGrid pagination={{ pageSize: 50 }} />`
+  // silently falls back to the default page size — surprising, since the prop
+  // documents `pageSize` as a config field.
+  const paginationSeed = useMemo<DataGridState['pagination'] | undefined>(() => {
+    if (initialState?.pagination) return undefined;
+    if (typeof pagination === 'object' && pagination?.pageSize) {
+      return { pageIndex: 0, pageSize: pagination.pageSize };
+    }
+    return undefined;
+  }, [pagination, initialState]);
+
   const merged = useMemo<DataGridState>(
-    () => ({ ...defaultState, ...initialState, ...controlledState }),
+    () => ({
+      ...defaultState,
+      ...(paginationSeed ? { pagination: paginationSeed } : {}),
+      ...initialState,
+      ...controlledState,
+    }),
     // intentionally only depend on initialState/controlledState identity
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],

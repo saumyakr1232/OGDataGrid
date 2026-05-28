@@ -612,6 +612,7 @@ function DataRow<T>({
         const interactionProps = {
           ...cellInteractionAttrs(rowIndex, colIndex),
           onMouseDown: (e: React.MouseEvent) => cellInteraction.onCellMouseDown(e, rowIndex, colIndex),
+          onMouseEnter: (e: React.MouseEvent) => cellInteraction.onCellMouseEnter(e, rowIndex, colIndex),
           onClick: (e: React.MouseEvent) => cellInteraction.onCellClick(e, rowIndex, colIndex),
           onContextMenu: (e: React.MouseEvent) => {
             cellInteraction.onCellContextMenu(e, rowIndex, colIndex);
