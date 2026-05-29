@@ -151,10 +151,13 @@ export function DateFilter<T>({ column }: { column: Column<T, unknown> }) {
         onClick={openPopover}
         startIcon={<FilterListIcon fontSize="small" />}
         sx={{
+          // Match the height of the sibling small outlined inputs (40px) so the
+          // filter row stays visually aligned.
+          height: 40,
           justifyContent: 'flex-start',
           textTransform: 'none',
           fontWeight: 400,
-          borderColor: 'divider',
+          borderColor: 'rgba(0, 0, 0, 0.23)',
           color: applied ? 'text.primary' : 'text.secondary',
           minWidth: 0,
         }}
