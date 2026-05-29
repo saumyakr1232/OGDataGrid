@@ -156,6 +156,37 @@ describe('inferColumnFilter', () => {
     const result = inferColumnFilter(col, sorted, { random: seeded(123) });
     expect(result?.variant).toBe('select');
     // A purely head-based sample of the first 100 rows would yield only "A".
-    expect(result?.options?.length).toBeGreaterThan(1);
+    expect(result?.options?.length).toBe(cats.length);
+  });
+
+  it('does not emit an incomplete select for skewed high-cardinality data', () => {
+    // 95% of rows share one common value; the remaining 5% spread across 200
+    // unique values. A sample would see only a handful of distinct values and
+    // wrongly call this `select` with a dropdown missing almost everything.
+    const rows = Array.from({ length: 4000 }, (_, i) => ({
+      ref: i % 20 === 0 ? `rare-${i}` : 'COMMON',
+    }));
+    const col = { accessorKey: 'ref', header: 'Ref' } as DataGridColumnDef<{ ref: string }>;
+
+    const result = inferColumnFilter(col, rows, { random: seeded(99) });
+    // >20 distinct overall → free text, not a misleading partial dropdown.
+    expect(result?.variant).toBe('text');
+    expect(result?.options).toBeUndefined();
+  });
+
+  it('returns a complete option list for skewed low-cardinality data', () => {
+    // One value dominates; 19 others are rare. The full scan must still include
+    // every rare value in the dropdown even though a sample would likely miss them.
+    const tail = Array.from({ length: 19 }, (_, i) => `tag-${i}`);
+    const rows = Array.from({ length: 2000 }, (_, i) => ({
+      tag: i % 100 === 0 ? tail[(i / 100) % tail.length] : 'MAIN',
+    }));
+    const col = { accessorKey: 'tag', header: 'Tag' } as DataGridColumnDef<{ tag: string }>;
+
+    const result = inferColumnFilter(col, rows, { random: seeded(5) });
+    expect(result?.variant).toBe('select');
+    expect(result?.options).toHaveLength(20); // MAIN + 19 rare tags
+    expect(result?.options?.map((o) => o.value)).toContain('tag-0');
+    expect(result?.options?.map((o) => o.value)).toContain('tag-18');
   });
 });

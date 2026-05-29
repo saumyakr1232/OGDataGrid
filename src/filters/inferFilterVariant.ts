@@ -7,7 +7,7 @@ export interface InferredFilter {
 }
 
 export interface InferOptions {
-  /** How many data points to sample. Defaults to 100. */
+  /** How many data points to sample for the *type* decision. Defaults to 100. */
   sampleSize?: number;
   /** Max distinct string values before a column is treated as free text. */
   maxDistinct?: number;
@@ -88,9 +88,51 @@ export function classifyValues(
 }
 
 /**
- * Infer a filter variant (and, for `select`, its options) for a column by
- * sampling the provided rows at random. Returns `null` when the column has no
- * accessor (e.g. a display/action column) or no non-null data to learn from.
+ * Walk *every* row to build the complete distinct set of a string column,
+ * bailing out early as soon as the count exceeds `maxDistinct` — so a
+ * high-cardinality / free-text column stops almost immediately and we never pay
+ * for a full scan there. Returns `null` (→ treat as free text) when the column
+ * is a poor `select` candidate: a non-string value appears, the distinct count
+ * blows past the cap, or there isn't enough repetition to be worth a dropdown.
+ *
+ * Unlike sampling, this guarantees the option list contains *all* real values,
+ * which matters for skewed data where a sample would miss rare categories.
+ */
+function collectDistinct<T>(
+  accessor: (row: T, index: number) => unknown,
+  rows: T[],
+  maxDistinct: number,
+): string[] | null {
+  const distinct = new Set<string>();
+  let nonEmpty = 0;
+  for (let i = 0; i < rows.length; i++) {
+    const v = accessor(rows[i], i);
+    if (v == null || v === '') continue;
+    if (typeof v !== 'string') return null; // mixed/non-string → not a select
+    nonEmpty++;
+    distinct.add(v);
+    if (distinct.size > maxDistinct) return null; // too many → free text (early bail)
+  }
+  if (distinct.size === 0) return null;
+  // An (almost) all-unique column is really free text, not a dropdown.
+  if (distinct.size >= nonEmpty * 0.6) return null;
+  return [...distinct];
+}
+
+/**
+ * Infer a filter variant (and, for `select`, its options) for a column.
+ *
+ * Hybrid strategy:
+ *  - The *type* (boolean/number/date) is decided from a random sample — cheap,
+ *    and a column's type is uniform enough that a sample rarely misleads. (A
+ *    stray off-type value that slips past the sample still degrades gracefully:
+ *    e.g. numberRangeFilterFn simply rejects non-numbers.)
+ *  - For string columns the cardinality is decided by a *full* scan with early
+ *    bail (collectDistinct), because sampling under-counts distinct values on
+ *    skewed data and would otherwise emit an incomplete `select` dropdown.
+ *
+ * Returns `null` when the column has no accessor (e.g. a display/action column)
+ * or no non-null data to learn from.
  */
 export function inferColumnFilter<T>(
   column: DataGridColumnDef<T>,
@@ -104,13 +146,26 @@ export function inferColumnFilter<T>(
   const maxDistinct = opts.maxDistinct ?? DEFAULT_MAX_DISTINCT;
   const random = opts.random ?? Math.random;
 
+  // 1) Sample for the type decision.
   const idx = sampleIndices(rows.length, sampleSize, random);
-  const values: unknown[] = [];
+  const sample: unknown[] = [];
   for (const i of idx) {
     const v = accessor(rows[i], i);
-    if (v != null && v !== '') values.push(v);
+    if (v != null && v !== '') sample.push(v);
   }
-  if (values.length === 0) return null;
+  if (sample.length === 0) return null;
 
-  return classifyValues(values, maxDistinct);
+  const sampled = classifyValues(sample, maxDistinct);
+  if (sampled.variant === 'boolean' || sampled.variant === 'number' || sampled.variant === 'date') {
+    return { variant: sampled.variant };
+  }
+
+  // 2) String-ish column: derive the complete option list from a full scan so
+  //    skew can't hide rare values; fall back to free text when unsuitable.
+  const distinct = collectDistinct(accessor, rows, maxDistinct);
+  if (!distinct) return { variant: 'text' };
+  return {
+    variant: 'select',
+    options: distinct.sort((a, b) => a.localeCompare(b)).map((v) => ({ label: v, value: v })),
+  };
 }
