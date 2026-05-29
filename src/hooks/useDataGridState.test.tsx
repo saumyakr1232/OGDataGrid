@@ -214,3 +214,30 @@ describe('useDataGridState — advanced filter eval', () => {
     expect(visibleNames(result)).toEqual(['Alice', 'Bob', 'Carol', 'Dave']);
   });
 });
+
+describe('useDataGridState — auto-wired column filterFns', () => {
+  // `select` stores a scalar and must match by equality; `multiSelect` stores an
+  // array and matches by membership. Wiring the array fn to single select throws
+  // (filterValue.some on a string), so these guard that the variants map apart.
+  function setupWith(meta: { filterVariant: 'select' | 'multiSelect' }) {
+    const cols: DataGridColumnDef<Person>[] = [
+      { accessorKey: 'name', header: 'Name' },
+      { accessorKey: 'city', header: 'City', meta },
+    ];
+    return renderHook(() =>
+      useDataGridState<Person>({ rows: data, columns: cols, getRowId: (r) => r.id }),
+    );
+  }
+
+  it('single select filters by exact equality on a scalar value', () => {
+    const { result } = setupWith({ filterVariant: 'select' });
+    act(() => result.current.table.getColumn('city')!.setFilterValue('NYC'));
+    expect(visibleNames(result)).toEqual(['Alice']);
+  });
+
+  it('multiSelect filters by membership on an array value', () => {
+    const { result } = setupWith({ filterVariant: 'multiSelect' });
+    act(() => result.current.table.getColumn('city')!.setFilterValue(['NYC', 'SF']));
+    expect(visibleNames(result)).toEqual(['Alice', 'Dave']);
+  });
+});

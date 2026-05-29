@@ -29,11 +29,13 @@ const DEFAULT_PAGE_SIZE = 25;
 
 // Default filterFn for each variant, used when a column doesn't supply its own.
 // `'includesString'` and `'equals'` are TanStack built-ins referenced by name.
+// Single `select` stores a scalar value (exact match); only `multiSelect` stores
+// an array, which is what inListFilterFn expects.
 const FILTER_FN_BY_VARIANT: Record<FilterVariant, FilterFn<unknown> | string> = {
   text: 'includesString',
   number: numberRangeFilterFn as unknown as FilterFn<unknown>,
   date: dateFilterFn as unknown as FilterFn<unknown>,
-  select: inListFilterFn as unknown as FilterFn<unknown>,
+  select: 'equals',
   multiSelect: inListFilterFn as unknown as FilterFn<unknown>,
   boolean: 'equals',
 };
