@@ -13,5 +13,6 @@ export type {
   AdvancedFilterGroup,
   AggregationFn,
 } from './types';
+export { generateColumns } from './columns/generateColumns';
 export { dateFilterFn } from './components/filters/DateFilter';
 export type { DateOp, DateCondition, DateFilterValue } from './components/filters/DateFilter';

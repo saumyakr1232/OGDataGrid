@@ -21,6 +21,7 @@ import { HeaderCellContent } from './components/HeaderCellContent';
 import { PaginationFooter } from './components/PaginationFooter';
 import { AdvancedFilterPanel } from './components/AdvancedFilterPanel';
 import { exportTableToCsv } from './export/toCsv';
+import { generateColumns } from './columns/generateColumns';
 import {
   BodyCell,
   BodyRow,
@@ -40,6 +41,7 @@ const SELECTION_COL_ID = '__select__';
 export function DataGrid<T>(props: DataGridProps<T>) {
   const {
     columns,
+    rows,
     loading,
     error,
     pagination = { mode: 'client', pageSize: 25, pageSizeOptions: [10, 25, 50, 100] },
@@ -67,8 +69,14 @@ export function DataGrid<T>(props: DataGridProps<T>) {
     export: (toolbarOpts.export ?? true) && enableCsvExport,
   };
 
+  // Fall back to columns derived from the data when none are supplied.
+  const baseColumns = useMemo(
+    () => (columns && columns.length > 0 ? columns : generateColumns(rows)),
+    [columns, rows],
+  );
+
   const enrichedColumns = useMemo(() => {
-    const out = [...columns];
+    const out = [...baseColumns];
     if (selection) {
       out.unshift({
         id: SELECTION_COL_ID,
@@ -99,7 +107,7 @@ export function DataGrid<T>(props: DataGridProps<T>) {
       });
     }
     return out;
-  }, [columns, selection]);
+  }, [baseColumns, selection]);
 
   const { table, state, setters } = useDataGridState({
     ...props,

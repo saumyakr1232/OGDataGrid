@@ -93,7 +93,7 @@ function evalGroup<T>(group: AdvancedFilterGroup, row: Row<T>): boolean {
 export function useDataGridState<T>(props: DataGridProps<T>) {
   const {
     rows,
-    columns,
+    columns = [],
     getRowId,
     pagination,
     selection,

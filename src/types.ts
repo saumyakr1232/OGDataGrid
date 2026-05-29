@@ -125,7 +125,11 @@ export interface DataGridState {
 }
 
 export interface DataGridProps<T> {
-  columns: DataGridColumnDef<T>[];
+  /**
+   * Column definitions. Optional — when omitted (or empty), columns are
+   * generated from the row data, one per top-level key.
+   */
+  columns?: DataGridColumnDef<T>[];
   rows: T[];
   getRowId?: (row: T, index: number) => string;
   loading?: boolean;
