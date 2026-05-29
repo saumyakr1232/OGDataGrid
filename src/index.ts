@@ -4,6 +4,7 @@ export type {
   DataGridColumnDef,
   DataGridColumnMeta,
   DataGridSlots,
+  DataGridToolbarOptions,
   PaginationOptions,
   SelectionOptions,
   Density,
@@ -12,3 +13,5 @@ export type {
   AdvancedFilterGroup,
   AggregationFn,
 } from './types';
+export { dateFilterFn } from './components/filters/DateFilter';
+export type { DateOp, DateCondition, DateFilterValue } from './components/filters/DateFilter';

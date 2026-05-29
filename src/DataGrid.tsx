@@ -52,7 +52,20 @@ export function DataGrid<T>(props: DataGridProps<T>) {
     className,
     enableCsvExport = true,
     csvFileName = 'export.csv',
+    toolbar,
   } = props;
+
+  const showToolbar = toolbar !== false;
+  const toolbarOpts = toolbar || {};
+  const tools = {
+    quickFilter: toolbarOpts.quickFilter ?? true,
+    columnFilters: toolbarOpts.columnFilters ?? true,
+    advancedFilter: toolbarOpts.advancedFilter ?? true,
+    columns: toolbarOpts.columns ?? true,
+    groupBy: (toolbarOpts.groupBy ?? true) && enableGrouping,
+    density: toolbarOpts.density ?? true,
+    export: (toolbarOpts.export ?? true) && enableCsvExport,
+  };
 
   const enrichedColumns = useMemo(() => {
     const out = [...columns];
@@ -131,21 +144,22 @@ export function DataGrid<T>(props: DataGridProps<T>) {
 
   return (
     <GridRoot className={className} sx={{ height }}>
-      <Toolbar
-        table={table}
-        showFilters={state.showFilters}
-        onToggleFilters={() => setters.setShowFilters(!state.showFilters)}
-        globalFilter={state.globalFilter}
-        onGlobalFilterChange={setters.setGlobalFilter}
-        onOpenAdvanced={() => setAdvOpen(true)}
-        advancedFilter={state.advancedFilter}
-        density={state.density}
-        onDensityChange={setters.setDensity}
-        enableGrouping={enableGrouping}
-        enableCsvExport={enableCsvExport}
-        onExportCsv={handleExport}
-        extras={slots?.toolbarExtras}
-      />
+      {showToolbar && (
+        <Toolbar
+          table={table}
+          showFilters={state.showFilters}
+          onToggleFilters={() => setters.setShowFilters(!state.showFilters)}
+          globalFilter={state.globalFilter}
+          onGlobalFilterChange={setters.setGlobalFilter}
+          onOpenAdvanced={() => setAdvOpen(true)}
+          advancedFilter={state.advancedFilter}
+          density={state.density}
+          onDensityChange={setters.setDensity}
+          tools={tools}
+          onExportCsv={handleExport}
+          extras={slots?.toolbarExtras}
+        />
+      )}
       <GridTableContainer ref={scrollerRef}>
         <MuiTable
           stickyHeader
@@ -165,13 +179,18 @@ export function DataGrid<T>(props: DataGridProps<T>) {
                     {header.isPlaceholder ? null : header.id === SELECTION_COL_ID ? (
                       flexRender(header.column.columnDef.header, header.getContext())
                     ) : (
-                      <HeaderCellContent header={header} />
+                      <HeaderCellContent
+                        header={header}
+                        groupingActive={state.grouping.length > 0}
+                        currentAggregation={state.aggregationOverrides[header.column.id]}
+                        onSetAggregation={setters.setAggregation}
+                      />
                     )}
                   </HeaderCell>
                 ))}
               </TableRow>
             ))}
-            {state.showFilters && (
+            {tools.columnFilters && state.showFilters && (
               <FilterRow headers={table.getHeaderGroups()[0]?.headers ?? []} />
             )}
           </StickyHead>

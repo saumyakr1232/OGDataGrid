@@ -65,6 +65,21 @@ export interface DataGridSlots {
   toolbarExtras?: ReactNode;
 }
 
+/**
+ * Per-tool visibility for the toolbar. Every tool defaults to visible; set a
+ * key to `false` to hide it. Pass `toolbar={false}` on DataGrid to drop the
+ * toolbar entirely.
+ */
+export interface DataGridToolbarOptions {
+  quickFilter?: boolean;
+  columnFilters?: boolean;
+  advancedFilter?: boolean;
+  columns?: boolean;
+  groupBy?: boolean;
+  density?: boolean;
+  export?: boolean;
+}
+
 export interface AdvancedFilterRule {
   id: string;
   columnId: string;
@@ -106,6 +121,7 @@ export interface DataGridState {
   columnSizing: Record<string, number>;
   showFilters: boolean;
   density: Density;
+  aggregationOverrides: Record<string, AggregationFn>;
 }
 
 export interface DataGridProps<T> {
@@ -128,6 +144,7 @@ export interface DataGridProps<T> {
   onStateChange?: (state: DataGridState) => void;
 
   slots?: DataGridSlots;
+  toolbar?: DataGridToolbarOptions | false;
   height?: number | string;
   className?: string;
 

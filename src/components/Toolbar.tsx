@@ -30,8 +30,7 @@ export function Toolbar<T>({
   advancedFilter,
   density,
   onDensityChange,
-  enableGrouping,
-  enableCsvExport,
+  tools,
   onExportCsv,
   extras,
 }: {
@@ -44,8 +43,15 @@ export function Toolbar<T>({
   advancedFilter: AdvancedFilterGroup | null;
   density: Density;
   onDensityChange: (d: Density) => void;
-  enableGrouping: boolean;
-  enableCsvExport: boolean;
+  tools: {
+    quickFilter: boolean;
+    columnFilters: boolean;
+    advancedFilter: boolean;
+    columns: boolean;
+    groupBy: boolean;
+    density: boolean;
+    export: boolean;
+  };
   onExportCsv: () => void;
   extras?: React.ReactNode;
 }) {
@@ -58,61 +64,68 @@ export function Toolbar<T>({
   }, [local]);
 
   const advCount = advancedFilter ? countRules(advancedFilter) : 0;
+  const grouping = table.getState().grouping;
 
   return (
     <GridToolbar>
-      <TextField
-        size="small"
-        placeholder="Quick search…"
-        value={local}
-        onChange={(e) => setLocal(e.target.value)}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon fontSize="small" />
-            </InputAdornment>
-          ),
-          endAdornment: local ? (
-            <InputAdornment position="end">
-              <IconButton size="small" onClick={() => setLocal('')} aria-label="Clear search">
-                <ClearIcon fontSize="small" />
-              </IconButton>
-            </InputAdornment>
-          ) : null,
-        }}
-        sx={{ minWidth: 220 }}
-      />
-      <Tooltip title={showFilters ? 'Hide column filters' : 'Show column filters'}>
+      {tools.quickFilter && (
+        <TextField
+          size="small"
+          placeholder="Quick search…"
+          value={local}
+          onChange={(e) => setLocal(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" />
+              </InputAdornment>
+            ),
+            endAdornment: local ? (
+              <InputAdornment position="end">
+                <IconButton size="small" onClick={() => setLocal('')} aria-label="Clear search">
+                  <ClearIcon fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ) : null,
+          }}
+          sx={{ minWidth: 220 }}
+        />
+      )}
+      {tools.columnFilters && (
+        <Tooltip title={showFilters ? 'Hide column filters' : 'Show column filters'}>
+          <Button
+            size="small"
+            variant={showFilters ? 'contained' : 'text'}
+            startIcon={<FilterAltIcon />}
+            onClick={onToggleFilters}
+          >
+            Filters
+          </Button>
+        </Tooltip>
+      )}
+      {tools.advancedFilter && (
         <Button
           size="small"
-          variant={showFilters ? 'contained' : 'text'}
-          startIcon={<FilterAltIcon />}
-          onClick={onToggleFilters}
+          variant={advCount > 0 ? 'contained' : 'text'}
+          startIcon={<TuneIcon />}
+          onClick={onOpenAdvanced}
         >
-          Filters
-        </Button>
-      </Tooltip>
-      <Button
-        size="small"
-        variant={advCount > 0 ? 'contained' : 'text'}
-        startIcon={<TuneIcon />}
-        onClick={onOpenAdvanced}
-      >
-        Advanced
-        {advCount > 0 ? ` (${advCount})` : ''}
-      </Button>
-      <ColumnsMenu table={table} />
-      {enableGrouping && <GroupByMenu table={table} />}
-      <DensityMenu density={density} onChange={onDensityChange} />
-      {enableCsvExport && (
-        <Button size="small" startIcon={<FileDownloadIcon />} onClick={onExportCsv} variant="text">
-          Export CSV
+          Advanced
+          {advCount > 0 ? ` (${advCount})` : ''}
         </Button>
       )}
-      <Box sx={{ flex: 1 }} />
-      {table.getState().grouping.length > 0 && (
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
-          {table.getState().grouping.map((g) => (
+      {tools.columns && <ColumnsMenu table={table} />}
+      {tools.groupBy && <GroupByMenu table={table} />}
+      {tools.groupBy && grouping.length > 0 && (
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 0.5,
+          }}
+        >
+          {grouping.map((g) => (
             <Chip
               key={g}
               size="small"
@@ -122,6 +135,13 @@ export function Toolbar<T>({
           ))}
         </Box>
       )}
+      {tools.density && <DensityMenu density={density} onChange={onDensityChange} />}
+      {tools.export && (
+        <Button size="small" startIcon={<FileDownloadIcon />} onClick={onExportCsv} variant="text">
+          Export CSV
+        </Button>
+      )}
+      <Box sx={{ flex: 1 }} />
       {extras}
     </GridToolbar>
   );

@@ -65,14 +65,6 @@ export default function App() {
         cell: ({ getValue }) => (getValue<Date>()).toLocaleDateString(),
         meta: { filterVariant: 'date', exportValue: (r) => r.date.toISOString().slice(0, 10) },
         sortingFn: 'datetime',
-        filterFn: (row, columnId, value) => {
-          const [from, to] = (value as [Date | null, Date | null]) ?? [null, null];
-          const v = row.getValue<Date>(columnId);
-          if (!v) return false;
-          if (from && v < from) return false;
-          if (to && v > to) return false;
-          return true;
-        },
       },
       {
         accessorKey: 'region',

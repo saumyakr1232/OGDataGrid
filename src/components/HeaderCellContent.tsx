@@ -2,11 +2,21 @@ import { Box, IconButton, TableSortLabel, Tooltip } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useState, type ReactElement } from 'react';
 import { flexRender, type Header } from '@tanstack/react-table';
-import type { DataGridColumnMeta } from '../types';
+import type { AggregationFn, DataGridColumnMeta } from '../types';
 import { ColumnHeaderMenu } from './ColumnHeaderMenu';
 import { ResizeHandle } from '../styled';
 
-export function HeaderCellContent<T>({ header }: { header: Header<T, unknown> }) {
+export function HeaderCellContent<T>({
+  header,
+  groupingActive,
+  currentAggregation,
+  onSetAggregation,
+}: {
+  header: Header<T, unknown>;
+  groupingActive: boolean;
+  currentAggregation: AggregationFn | undefined;
+  onSetAggregation: (columnId: string, fn: AggregationFn) => void;
+}) {
   const col = header.column;
   const meta = col.columnDef.meta as DataGridColumnMeta<T> | undefined;
   const canSort = col.getCanSort();
@@ -55,6 +65,9 @@ export function HeaderCellContent<T>({ header }: { header: Header<T, unknown> })
           column={col}
           anchorEl={menuAnchor}
           onClose={() => setMenuAnchor(null)}
+          groupingActive={groupingActive}
+          currentAggregation={currentAggregation}
+          onSetAggregation={(fn) => onSetAggregation(col.id, fn)}
         />
       )}
       {col.getCanResize() && (
