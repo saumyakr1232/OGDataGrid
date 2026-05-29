@@ -63,64 +63,50 @@ export default function App() {
         header: 'Date',
         size: 140,
         cell: ({ getValue }) => (getValue<Date>()).toLocaleDateString(),
-        meta: { filterVariant: 'date', exportValue: (r) => r.date.toISOString().slice(0, 10) },
+        // Variant inferred as `date` from the data; exportValue stays explicit.
+        meta: { exportValue: (r) => r.date.toISOString().slice(0, 10) },
         sortingFn: 'datetime',
       },
       {
         accessorKey: 'region',
         header: 'Region',
         size: 110,
+        // Explicit `multiSelect` — inference only ever produces single `select`,
+        // so this demonstrates a consumer override winning over inference.
         meta: {
           filterVariant: 'multiSelect',
           filterOptions: REGIONS.map((r) => ({ label: r, value: r })),
           groupable: true,
-        },
-        filterFn: (row, columnId, value) => {
-          if (!value || (value as unknown[]).length === 0) return true;
-          return (value as unknown[]).includes(row.getValue(columnId));
         },
       },
       {
         accessorKey: 'category',
         header: 'Category',
         size: 120,
-        meta: {
-          filterVariant: 'select',
-          filterOptions: CATEGORIES.map((c) => ({ label: c, value: c })),
-          groupable: true,
-        },
+        // Variant + options inferred as a `select` from the data.
+        meta: { groupable: true },
       },
       {
         accessorKey: 'product',
         header: 'Product',
         size: 160,
-        meta: { filterVariant: 'text' },
+        // No meta needed — the small catalog is inferred as a `select` dropdown.
       },
       {
         accessorKey: 'rep',
         header: 'Sales Rep',
         size: 120,
-        meta: {
-          filterVariant: 'select',
-          filterOptions: REPS.map((r) => ({ label: r, value: r })),
-          groupable: true,
-        },
+        // Variant + options inferred as a `select` from the data.
+        meta: { groupable: true },
       },
       {
         accessorKey: 'units',
         header: 'Units',
         size: 100,
+        // Inferred as `number`; filterFn auto-wired.
         meta: {
-          filterVariant: 'number',
           align: 'right',
           aggregationFn: 'sum',
-        },
-        filterFn: (row, columnId, value) => {
-          const [min, max] = (value as [number | '', number | '']) ?? ['', ''];
-          const n = row.getValue<number>(columnId);
-          if (min !== '' && n < min) return false;
-          if (max !== '' && n > max) return false;
-          return true;
         },
       },
       {
@@ -128,26 +114,17 @@ export default function App() {
         header: 'Unit price',
         size: 120,
         meta: {
-          filterVariant: 'number',
           align: 'right',
           aggregationFn: 'avg',
         },
         cell: ({ getValue }) => `$${getValue<number>().toFixed(2)}`,
         aggregatedCell: ({ getValue }) => `$${Number(getValue() ?? 0).toFixed(2)} avg`,
-        filterFn: (row, columnId, value) => {
-          const [min, max] = (value as [number | '', number | '']) ?? ['', ''];
-          const n = row.getValue<number>(columnId);
-          if (min !== '' && n < min) return false;
-          if (max !== '' && n > max) return false;
-          return true;
-        },
       },
       {
         accessorKey: 'revenue',
         header: 'Revenue',
         size: 140,
         meta: {
-          filterVariant: 'number',
           align: 'right',
           aggregationFn: 'sum',
         },
@@ -155,19 +132,12 @@ export default function App() {
           `$${getValue<number>().toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
         aggregatedCell: ({ getValue }) =>
           `$${Number(getValue() ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
-        filterFn: (row, columnId, value) => {
-          const [min, max] = (value as [number | '', number | '']) ?? ['', ''];
-          const n = row.getValue<number>(columnId);
-          if (min !== '' && n < min) return false;
-          if (max !== '' && n > max) return false;
-          return true;
-        },
       },
       {
         accessorKey: 'active',
         header: 'Active',
         size: 100,
-        meta: { filterVariant: 'boolean' },
+        // Inferred as `boolean`.
         cell: ({ getValue }) =>
           getValue<boolean>() ? <Chip label="Yes" size="small" color="success" /> : <Chip label="No" size="small" />,
       },
