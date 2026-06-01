@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Box,
   Checkbox,
@@ -55,6 +55,7 @@ export function DataGrid<T>(props: DataGridProps<T>) {
     enableCsvExport = true,
     csvFileName = 'export.csv',
     toolbar,
+    emptyText = 'N/A',
   } = props;
 
   const showToolbar = toolbar !== false;
@@ -209,7 +210,7 @@ export function DataGrid<T>(props: DataGridProps<T>) {
               </tr>
             )}
             {rowsToRender.map((row) => (
-              <DataRow key={row.id} row={row} density={state.density} />
+              <DataRow key={row.id} row={row} density={state.density} emptyText={emptyText} />
             ))}
             {paddingBottom > 0 && (
               <tr style={{ height: paddingBottom }}>
@@ -259,7 +260,15 @@ export function DataGrid<T>(props: DataGridProps<T>) {
   );
 }
 
-function DataRow<T>({ row, density }: { row: Row<T>; density: 'compact' | 'standard' | 'comfortable' }) {
+function DataRow<T>({
+  row,
+  density,
+  emptyText,
+}: {
+  row: Row<T>;
+  density: 'compact' | 'standard' | 'comfortable';
+  emptyText: ReactNode;
+}) {
   const isAgg = row.getIsGrouped();
   return (
     <BodyRow selected={row.getIsSelected()} aggregated={isAgg}>
@@ -311,9 +320,20 @@ function DataRow<T>({ row, density }: { row: Row<T>; density: 'compact' | 'stand
         if (cell.getIsPlaceholder()) {
           return <BodyCell key={cell.id} density={density} align={align} style={{ width: cell.column.getSize() }} />;
         }
+        const value = cell.getValue();
+        // Only data (accessor) columns get the placeholder — display/action
+        // columns (e.g. the selection checkbox) have no accessor and would
+        // otherwise read as "empty" and lose their custom cell.
+        const isEmpty = !!cell.column.accessorFn && (value == null || value === '');
         return (
           <BodyCell key={cell.id} density={density} align={align} style={{ width: cell.column.getSize() }}>
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            {isEmpty ? (
+              <Box component="span" sx={{ color: 'text.disabled' }}>
+                {emptyText}
+              </Box>
+            ) : (
+              flexRender(cell.column.columnDef.cell, cell.getContext())
+            )}
           </BodyCell>
         );
       })}

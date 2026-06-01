@@ -152,6 +152,12 @@ export interface DataGridProps<T> {
   height?: number | string;
   className?: string;
 
+  /**
+   * Placeholder rendered for any cell whose value is null/undefined/empty.
+   * Defaults to "N/A". Pass `''` to keep empty cells blank.
+   */
+  emptyText?: ReactNode;
+
   enableCsvExport?: boolean;
   csvFileName?: string;
 }
