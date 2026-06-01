@@ -160,9 +160,12 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
   const enableSelection = !!selection;
   const enablePagination = pagination !== false;
 
+  // `columns` is always a resolved def array here — DataGrid converts a
+  // serializable DataGridConfig before calling this hook.
+  const columnDefs = Array.isArray(columns) ? columns : [];
   const cols = useMemo(
-    () => attachAggregations(attachFilters(columns, rows), aggregationOverrides),
-    [columns, rows, aggregationOverrides],
+    () => attachAggregations(attachFilters(columnDefs, rows), aggregationOverrides),
+    [columnDefs, rows, aggregationOverrides],
   );
 
   // TanStack only invokes globalFilterFn when its globalFilter state is

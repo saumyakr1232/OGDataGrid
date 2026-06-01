@@ -13,6 +13,20 @@ export type {
   AdvancedFilterGroup,
   AggregationFn,
 } from './types';
-export { generateColumns } from './columns/generateColumns';
+export { generateColumns, humanizeKey } from './columns/generateColumns';
+export {
+  resolveDataGridConfig,
+  isDataGridConfig,
+  formatCellValue,
+} from './columns/columnConfig';
+export type {
+  DataGridConfig,
+  ColumnConfig,
+  ColumnFilterConfig,
+  ColumnSortConfig,
+  ColumnFormat,
+  ColumnFormatOptions,
+  SerializableValue,
+} from './columns/columnConfig';
 export { dateFilterFn } from './components/filters/DateFilter';
 export type { DateOp, DateCondition, DateFilterValue } from './components/filters/DateFilter';

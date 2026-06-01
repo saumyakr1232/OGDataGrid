@@ -22,6 +22,7 @@ import { PaginationFooter } from './components/PaginationFooter';
 import { AdvancedFilterPanel } from './components/AdvancedFilterPanel';
 import { exportTableToCsv } from './export/toCsv';
 import { generateColumns } from './columns/generateColumns';
+import { isDataGridConfig, resolveDataGridConfig } from './columns/columnConfig';
 import {
   BodyCell,
   BodyRow,
@@ -34,7 +35,7 @@ import {
   StickyHead,
   densityToRowHeight,
 } from './styled';
-import type { DataGridColumnMeta, DataGridProps } from './types';
+import type { DataGridColumnDef, DataGridColumnMeta, DataGridProps } from './types';
 
 const SELECTION_COL_ID = '__select__';
 
@@ -70,10 +71,30 @@ export function DataGrid<T>(props: DataGridProps<T>) {
     export: (toolbarOpts.export ?? true) && enableCsvExport,
   };
 
-  // Fall back to columns derived from the data when none are supplied.
+  // A serializable `DataGridConfig` resolves to runtime column defs plus the
+  // initial state it implies (hidden columns, group-by, sorting); a plain
+  // column-def array is used as-is. Either way we fall back to columns derived
+  // from the data when nothing usable is supplied.
+  const resolvedConfig = useMemo(
+    () => (isDataGridConfig<T>(columns) ? resolveDataGridConfig<T>(columns) : null),
+    [columns],
+  );
+  const suppliedColumns = resolvedConfig
+    ? resolvedConfig.columns
+    : (columns as DataGridColumnDef<T>[] | undefined);
   const baseColumns = useMemo(
-    () => (columns && columns.length > 0 ? columns : generateColumns(rows)),
-    [columns, rows],
+    () => (suppliedColumns && suppliedColumns.length > 0 ? suppliedColumns : generateColumns(rows)),
+    [suppliedColumns, rows],
+  );
+
+  // Config-derived initial state seeds the grid; an explicit `initialState`
+  // prop still wins so callers can override a stored layout.
+  const initialState = useMemo(
+    () =>
+      resolvedConfig
+        ? { ...resolvedConfig.initialState, ...props.initialState }
+        : props.initialState,
+    [resolvedConfig, props.initialState],
   );
 
   const enrichedColumns = useMemo(() => {
@@ -113,6 +134,7 @@ export function DataGrid<T>(props: DataGridProps<T>) {
   const { table, state, setters } = useDataGridState({
     ...props,
     columns: enrichedColumns,
+    initialState,
     enableColumnResizing,
     enableGrouping,
   });

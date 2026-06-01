@@ -10,6 +10,7 @@ import type {
   ExpandedState,
 } from '@tanstack/react-table';
 import type { ReactNode } from 'react';
+import type { DataGridConfig } from './columns/columnConfig';
 
 export type Density = 'compact' | 'standard' | 'comfortable';
 
@@ -126,10 +127,14 @@ export interface DataGridState {
 
 export interface DataGridProps<T> {
   /**
-   * Column definitions. Optional — when omitted (or empty), columns are
-   * generated from the row data, one per top-level key.
+   * Column configuration. Accepts either:
+   *  - `DataGridColumnDef<T>[]` — full programmatic column defs (functions ok), or
+   *  - `DataGridConfig` — a JSON-serializable object describing columns, filters,
+   *    group-by and sorting, suitable for storing as a string in a DB and loading
+   *    back (see `resolveDataGridConfig`).
+   * Optional — when omitted (or empty), columns are generated from the row data.
    */
-  columns?: DataGridColumnDef<T>[];
+  columns?: DataGridColumnDef<T>[] | DataGridConfig;
   rows: T[];
   getRowId?: (row: T, index: number) => string;
   loading?: boolean;

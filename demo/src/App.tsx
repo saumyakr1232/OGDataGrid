@@ -1,6 +1,25 @@
 import { useMemo } from 'react';
 import { Box, Container, Stack, Typography } from '@mui/material';
-import { DataGrid } from 'og-data-grid';
+import { DataGrid, type DataGridConfig } from 'og-data-grid';
+
+// A serializable column layout, exactly as it might be persisted in a DB.
+// Note it is a plain JSON string — no functions — yet it configures headers,
+// widths, alignment, value formatting, filters, grouping and sorting.
+const SAVED_LAYOUT = `{
+  "columns": [
+    { "field": "id", "header": "ID", "width": 90 },
+    { "field": "date", "header": "Date", "format": "date", "width": 130 },
+    { "field": "region", "groupable": true },
+    { "field": "category", "groupable": true },
+    { "field": "product", "header": "Product", "width": 150 },
+    { "field": "rep", "header": "Sales Rep", "groupable": true },
+    { "field": "units", "header": "Units", "align": "right", "format": "number", "aggregation": "sum" },
+    { "field": "unitPrice", "header": "Unit Price", "align": "right", "format": "currency", "formatOptions": { "currency": "USD" }, "aggregation": "avg" },
+    { "field": "revenue", "header": "Revenue", "align": "right", "format": "currency", "formatOptions": { "currency": "USD", "maximumFractionDigits": 0 }, "aggregation": "sum" },
+    { "field": "active", "header": "Active", "format": "boolean" }
+  ],
+  "sorting": [{ "field": "revenue", "desc": true }]
+}`;
 
 interface Sale {
   id: string;
@@ -50,20 +69,23 @@ function genRows(n: number): Sale[] {
 export default function App() {
   const rows = useMemo(() => genRows(2500), []);
 
+  // Load the layout from its stored string, exactly as you would after reading
+  // it from a database, then hand the parsed object straight to `columns`.
+  const columns = useMemo(() => JSON.parse(SAVED_LAYOUT) as DataGridConfig, []);
+
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
       <Stack spacing={2}>
         <Box>
           <Typography variant="h4">OGDataGrid Demo</Typography>
           <Typography variant="body2" color="text.secondary">
-            {rows.length.toLocaleString()} rows — columns generated from the data;
-            sort, filter, group, hide, resize, paginate, select.
+            {rows.length.toLocaleString()} rows — columns configured from a stored
+            JSON layout; sort, filter, group, hide, resize, paginate, select.
           </Typography>
         </Box>
         <Box sx={{ height: 640 }}>
-          {/* No `columns` prop — they're derived from the row data, and each
-              column's filter variant is then inferred from the values. */}
           <DataGrid<Sale>
+            columns={columns}
             rows={rows}
             getRowId={(r) => r.id}
             selection={{ mode: 'multi' }}

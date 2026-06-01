@@ -5,7 +5,7 @@ import type { DataGridColumnDef } from '../types';
 const KEY_SCAN_LIMIT = 50;
 
 /** "unitPrice" → "Unit Price", "first_name" → "First Name", "id" → "Id". */
-function humanizeKey(key: string): string {
+export function humanizeKey(key: string): string {
   return key
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
     .replace(/[_-]+/g, ' ')
