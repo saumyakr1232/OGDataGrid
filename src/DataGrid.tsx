@@ -28,6 +28,7 @@ import {
   BodyCell,
   BodyRow,
   FooterBar,
+  GridHeader,
   GridRoot,
   GridTableContainer,
   GroupCellInner,
@@ -58,6 +59,8 @@ export function DataGrid<T>(props: DataGridProps<T>) {
     csvFileName = 'export.csv',
     toolbar,
     emptyText = 'N/A',
+    title,
+    subtitle,
   } = props;
 
   const showToolbar = toolbar !== false;
@@ -176,6 +179,16 @@ export function DataGrid<T>(props: DataGridProps<T>) {
 
   return (
     <GridRoot className={className} sx={{ height }}>
+      {(title || subtitle) && (
+        <GridHeader>
+          {title && <Typography variant="h6">{title}</Typography>}
+          {subtitle && (
+            <Typography variant="body2" color="text.secondary">
+              {subtitle}
+            </Typography>
+          )}
+        </GridHeader>
+      )}
       {showToolbar && (
         <Toolbar
           table={table}

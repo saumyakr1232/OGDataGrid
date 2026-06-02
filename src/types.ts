@@ -154,6 +154,11 @@ export interface DataGridProps<T> {
   state?: Partial<DataGridState>;
   onStateChange?: (state: DataGridState) => void;
 
+  /** Heading shown above the toolbar. */
+  title?: ReactNode;
+  /** Subheading shown under the title. */
+  subtitle?: ReactNode;
+
   slots?: DataGridSlots;
   toolbar?: DataGridToolbarOptions | false;
   height?: number | string;

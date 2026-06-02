@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { Box, Container, Stack, Typography } from '@mui/material';
+import { useMemo, useState } from 'react';
+import { Box, Button, CircularProgress, Container, Stack, Typography } from '@mui/material';
 import { DataGrid, type DataGridConfig } from 'og-data-grid';
 
 // A serializable column layout, as it might be persisted in a DB — plain JSON,
@@ -130,11 +130,16 @@ function genRows(n: number): Sale[] {
 }
 
 export default function App() {
-  const rows = useMemo(() => genRows(2500), []);
+  const allRows = useMemo(() => genRows(2500), []);
+  const [loading, setLoading] = useState(false);
+  const [empty, setEmpty] = useState(false);
 
-  // Load the layout from its stored string, exactly as you would after reading
-  // it from a database, then hand the parsed object straight to `columns`.
   const columns = useMemo(() => JSON.parse(SAVED_LAYOUT) as DataGridConfig, []);
+
+  const simulateLoad = () => {
+    setLoading(true);
+    setTimeout(() => setLoading(false), 900);
+  };
 
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
@@ -142,14 +147,17 @@ export default function App() {
         <Box>
           <Typography variant="h4">OGDataGrid Demo</Typography>
           <Typography variant="body2" color="text.secondary">
-            {rows.length.toLocaleString()} rows — columns configured from a stored
+            {allRows.length.toLocaleString()} rows — columns configured from a stored
             JSON layout; sort, filter, group, hide, resize, paginate, select.
           </Typography>
         </Box>
         <Box sx={{ height: 640 }}>
           <DataGrid<Sale>
             columns={columns}
-            rows={rows}
+            rows={empty ? [] : allRows}
+            title="Sales"
+            subtitle="Revenue by region, product and rep"
+            loading={loading}
             getRowId={(r) => r.id}
             selection={{ mode: 'multi' }}
             initialState={{
@@ -157,6 +165,27 @@ export default function App() {
               pagination: { pageIndex: 0, pageSize: 25 },
             }}
             csvFileName="sales.csv"
+            slots={{
+              toolbarExtras: (
+                <Stack direction="row" spacing={1}>
+                  <Button size="small" variant="outlined" onClick={simulateLoad}>
+                    Simulate load
+                  </Button>
+                  <Button size="small" variant="outlined" onClick={() => setEmpty((e) => !e)}>
+                    {empty ? 'Show rows' : 'Clear rows'}
+                  </Button>
+                </Stack>
+              ),
+              loadingOverlay: (
+                <Stack alignItems="center" spacing={1}>
+                  <CircularProgress size={24} />
+                  <Typography variant="body2" color="text.secondary">Fetching sales…</Typography>
+                </Stack>
+              ),
+              noRowsOverlay: (
+                <Typography color="text.secondary">No sales to show yet 🤷</Typography>
+              ),
+            }}
           />
         </Box>
       </Stack>

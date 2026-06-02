@@ -26,6 +26,11 @@ export const GridRoot = styled(Box)(({ theme }) => ({
   fontFamily: theme.typography.fontFamily,
 }));
 
+export const GridHeader = styled(Box)(({ theme }) => ({
+  padding: theme.spacing(1.5, 2),
+  borderBottom: `1px solid ${theme.palette.divider}`,
+}));
+
 export const GridToolbar = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
