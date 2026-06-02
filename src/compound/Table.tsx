@@ -17,6 +17,7 @@ import { FilterRow } from '../components/FilterRow';
 import { HeaderCellContent } from '../components/HeaderCellContent';
 import { renderChip, resolveCellStyleSpec } from '../columns/cellStyle';
 import { SELECTION_COL_ID } from '../hooks/useDataGrid';
+import type { CellClickParams } from '../types';
 import {
   BodyCell,
   BodyRow,
@@ -42,6 +43,7 @@ export function DataGridTable<T>() {
     error,
     paginating,
     enableVirtualization,
+    onCellClick,
   } = useDataGridContext<T>();
 
   const scrollerRef = useRef<HTMLDivElement | null>(null);
@@ -108,7 +110,13 @@ export function DataGridTable<T>() {
             </tr>
           )}
           {rowsToRender.map((row) => (
-            <DataRow key={row.id} row={row} density={state.density} emptyText={emptyText} />
+            <DataRow
+              key={row.id}
+              row={row}
+              density={state.density}
+              emptyText={emptyText}
+              onCellClick={onCellClick}
+            />
           ))}
           {paddingBottom > 0 && (
             <tr style={{ height: paddingBottom }}>
@@ -136,10 +144,12 @@ function DataRow<T>({
   row,
   density,
   emptyText,
+  onCellClick,
 }: {
   row: Row<T>;
   density: Density;
   emptyText: ReactNode;
+  onCellClick?: (params: CellClickParams<T>) => void;
 }) {
   const isAgg = row.getIsGrouped();
   return (
@@ -212,11 +222,26 @@ function DataRow<T>({
         // a chip carries the css itself, otherwise it goes on the cell
         const isChip = spec?.variant === 'chip';
         const content = flexRender(cell.column.columnDef.cell, cell.getContext());
+        const clickable = !!onCellClick && cell.column.id !== SELECTION_COL_ID;
         return (
           <BodyCell
             key={cell.id}
             density={density}
             align={align}
+            onClick={
+              clickable
+                ? (event) =>
+                    onCellClick!({
+                      value,
+                      row: row.original,
+                      rowId: row.id,
+                      columnId: cell.column.id,
+                      cell,
+                      event,
+                    })
+                : undefined
+            }
+            sx={clickable ? { cursor: 'pointer' } : undefined}
             style={{ width: cell.column.getSize(), ...(isChip ? undefined : spec?.css) }}
           >
             {isEmpty ? (

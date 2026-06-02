@@ -1,4 +1,5 @@
-import { DataGridRoot } from './compound/Root';
+import { DataGridProvider } from './compound/Provider';
+import { DataGridContainer } from './compound/Container';
 import { DataGridHeader } from './compound/Header';
 import { DataGridToolbar } from './compound/Toolbar';
 import { DataGridTable } from './compound/Table';
@@ -12,33 +13,18 @@ import {
   DataGridGroupByButton,
   DataGridQuickFilter,
 } from './compound/toolbar-parts';
-import type { DataGridProps } from './types';
-
-function DataGridBase<T>(props: DataGridProps<T>) {
-  const { toolbar, title, subtitle } = props;
-  return (
-    <DataGridRoot {...props}>
-      {(title != null || subtitle != null) && (
-        <DataGridHeader title={title} subtitle={subtitle} />
-      )}
-      {toolbar !== false && <DataGridToolbar />}
-      <DataGridTable<T> />
-      <DataGridPagination />
-    </DataGridRoot>
-  );
-}
 
 /**
- * Batteries-included grid. For full control over layout, compose the parts
- * yourself: <DataGrid.Root>{<DataGrid.Toolbar/>, <DataGrid.Table/>, …}</DataGrid.Root>.
+ * Composable grid. Wrap data in `DataGrid.Provider`, draw the shell with
+ * `DataGrid.Container`, and assemble the parts you need.
  */
-export const DataGrid = Object.assign(DataGridBase, {
-  Root: DataGridRoot,
+export const DataGrid = {
+  Provider: DataGridProvider,
+  Container: DataGridContainer,
   Header: DataGridHeader,
   Toolbar: DataGridToolbar,
   Table: DataGridTable,
   Pagination: DataGridPagination,
-  // composable toolbar pieces
   QuickFilter: DataGridQuickFilter,
   FilterToggle: DataGridFilterToggle,
   AdvancedFilter: DataGridAdvancedFilter,
@@ -46,4 +32,4 @@ export const DataGrid = Object.assign(DataGridBase, {
   GroupByButton: DataGridGroupByButton,
   DensityButton: DataGridDensityButton,
   ExportButton: DataGridExportButton,
-});
+};

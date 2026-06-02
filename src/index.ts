@@ -3,9 +3,12 @@ export { DataGrid } from './DataGrid';
 // Headless core + compound parts, for building a custom grid layout.
 export { useDataGrid, SELECTION_COL_ID } from './hooks/useDataGrid';
 export type { UseDataGridResult, ResolvedTools } from './hooks/useDataGrid';
-export { useDataGridContext } from './compound/context';
+export { useDataGridContext, useDataGridMeta } from './compound/context';
 export type { DataGridContextValue } from './compound/context';
-export { DataGridRoot } from './compound/Root';
+export { DataGridProvider } from './compound/Provider';
+export type { DataGridProviderProps } from './compound/Provider';
+export { DataGridContainer } from './compound/Container';
+export type { DataGridContainerProps } from './compound/Container';
 export { DataGridHeader } from './compound/Header';
 export { DataGridToolbar } from './compound/Toolbar';
 export { DataGridTable } from './compound/Table';
@@ -33,6 +36,7 @@ export type {
   AdvancedFilterRule,
   AdvancedFilterGroup,
   AggregationFn,
+  CellClickParams,
 } from './types';
 export { generateColumns, humanizeKey } from './columns/generateColumns';
 export {

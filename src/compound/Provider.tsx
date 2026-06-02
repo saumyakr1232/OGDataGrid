@@ -1,12 +1,14 @@
 import type { ReactNode } from 'react';
 import { useDataGrid } from '../hooks/useDataGrid';
-import { GridRoot } from '../styled';
 import { DataGridContext, type DataGridContextValue } from './context';
 import type { DataGridProps } from '../types';
 
-export type DataGridRootProps<T> = DataGridProps<T> & { children: ReactNode };
+export type DataGridProviderProps<T> = DataGridProps<T> & {
+  meta?: unknown;
+  children: ReactNode;
+};
 
-export function DataGridRoot<T>({ children, ...props }: DataGridRootProps<T>) {
+export function DataGridProvider<T>({ children, meta, ...props }: DataGridProviderProps<T>) {
   const core = useDataGrid<T>(props);
 
   const value: DataGridContextValue<T> = {
@@ -15,13 +17,13 @@ export function DataGridRoot<T>({ children, ...props }: DataGridRootProps<T>) {
     emptyText: props.emptyText ?? 'N/A',
     loading: props.loading,
     error: props.error,
+    onCellClick: props.onCellClick,
+    meta,
   };
 
   return (
     <DataGridContext.Provider value={value as DataGridContextValue<unknown>}>
-      <GridRoot className={props.className} sx={{ height: props.height ?? 560 }}>
-        {children}
-      </GridRoot>
+      {children}
     </DataGridContext.Provider>
   );
 }

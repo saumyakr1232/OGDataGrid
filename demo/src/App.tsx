@@ -1,6 +1,21 @@
 import { useMemo, useState } from 'react';
-import { Box, Button, CircularProgress, Container, Stack, Typography } from '@mui/material';
-import { DataGrid, type DataGridConfig } from 'og-data-grid';
+import { Box, Button, Chip, CircularProgress, Container, Stack, Typography } from '@mui/material';
+import {
+  DataGrid,
+  useDataGridMeta,
+  type CellClickParams,
+  type DataGridConfig,
+} from 'og-data-grid';
+
+interface GridMeta {
+  company: string;
+}
+
+// A custom toolbar piece that reads shared data off the provider.
+function CompanyBadge() {
+  const meta = useDataGridMeta<GridMeta>();
+  return meta ? <Chip size="small" label={meta.company} /> : null;
+}
 
 // A serializable column layout, as it might be persisted in a DB — plain JSON,
 // no functions. Also shows off cellStyle/styleRules (variant, textColor,
@@ -133,6 +148,7 @@ export default function App() {
   const allRows = useMemo(() => genRows(2500), []);
   const [loading, setLoading] = useState(false);
   const [empty, setEmpty] = useState(false);
+  const [lastClick, setLastClick] = useState('');
 
   const columns = useMemo(() => JSON.parse(SAVED_LAYOUT) as DataGridConfig, []);
 
@@ -141,81 +157,80 @@ export default function App() {
     setTimeout(() => setLoading(false), 900);
   };
 
+  const handleCellClick = (p: CellClickParams<Sale>) =>
+    setLastClick(`${p.columnId} = ${String(p.value)} (row ${p.rowId})`);
+
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
       <Stack spacing={2}>
         <Box>
           <Typography variant="h4">OGDataGrid Demo</Typography>
           <Typography variant="body2" color="text.secondary">
-            {allRows.length.toLocaleString()} rows — columns configured from a stored
-            JSON layout; sort, filter, group, hide, resize, paginate, select.
+            {allRows.length.toLocaleString()} rows — composed from Provider + Container + parts.
+            {lastClick && ` · last cell clicked: ${lastClick}`}
           </Typography>
-        </Box>
-        <Box sx={{ height: 640 }}>
-          <DataGrid<Sale>
-            columns={columns}
-            rows={empty ? [] : allRows}
-            title="Sales"
-            subtitle="Revenue by region, product and rep"
-            loading={loading}
-            getRowId={(r) => r.id}
-            selection={{ mode: 'multi' }}
-            initialState={{
-              showFilters: true,
-              pagination: { pageIndex: 0, pageSize: 25 },
-            }}
-            csvFileName="sales.csv"
-            slots={{
-              toolbarExtras: (
-                <Stack direction="row" spacing={1}>
-                  <Button size="small" variant="outlined" onClick={simulateLoad}>
-                    Simulate load
-                  </Button>
-                  <Button size="small" variant="outlined" onClick={() => setEmpty((e) => !e)}>
-                    {empty ? 'Show rows' : 'Clear rows'}
-                  </Button>
-                </Stack>
-              ),
-              loadingOverlay: (
-                <Stack alignItems="center" spacing={1}>
-                  <CircularProgress size={24} />
-                  <Typography variant="body2" color="text.secondary">Fetching sales…</Typography>
-                </Stack>
-              ),
-              noRowsOverlay: (
-                <Typography color="text.secondary">No sales to show yet 🤷</Typography>
-              ),
-            }}
-          />
         </Box>
 
-        <Box>
-          <Typography variant="h6">Composed</Typography>
-          <Typography variant="body2" color="text.secondary">
-            Assembled from parts — a hand-built toolbar, pagination on top, 10 rows/page.
-          </Typography>
-        </Box>
-        <Box sx={{ height: 460 }}>
-          <DataGrid.Root<Sale>
-            columns={columns}
-            rows={allRows}
-            getRowId={(r) => r.id}
-            pagination={{ mode: 'client', pageSize: 10 }}
-          >
-            <DataGrid.Header title="Sales (composed)" />
+        <DataGrid.Provider<Sale>
+          columns={columns}
+          rows={empty ? [] : allRows}
+          loading={loading}
+          getRowId={(r) => r.id}
+          selection={{ mode: 'multi' }}
+          initialState={{ showFilters: true, pagination: { pageIndex: 0, pageSize: 25 } }}
+          csvFileName="sales.csv"
+          meta={{ company: 'Acme Corp' } satisfies GridMeta}
+          onCellClick={handleCellClick}
+          slots={{
+            loadingOverlay: (
+              <Stack alignItems="center" spacing={1}>
+                <CircularProgress size={24} />
+                <Typography variant="body2" color="text.secondary">Fetching sales…</Typography>
+              </Stack>
+            ),
+            noRowsOverlay: <Typography color="text.secondary">No sales to show yet 🤷</Typography>,
+          }}
+        >
+          <DataGrid.Container height={640}>
+            <DataGrid.Header title="Sales" subtitle="Revenue by region, product and rep" />
             <DataGrid.Toolbar>
-              <DataGrid.QuickFilter placeholder="Search sales…" />
+              <DataGrid.QuickFilter />
+              <DataGrid.FilterToggle />
               <DataGrid.ColumnsButton />
+              <DataGrid.GroupByButton />
               <DataGrid.DensityButton />
+              <DataGrid.ExportButton />
               <Box sx={{ flex: 1 }} />
+              <CompanyBadge />
               <Button size="small" variant="outlined" onClick={simulateLoad}>
-                Refresh
+                Simulate load
+              </Button>
+              <Button size="small" variant="outlined" onClick={() => setEmpty((e) => !e)}>
+                {empty ? 'Show rows' : 'Clear rows'}
               </Button>
             </DataGrid.Toolbar>
-            <DataGrid.Pagination pageSizeOptions={[5, 10, 20]} />
             <DataGrid.Table<Sale> />
-          </DataGrid.Root>
+            <DataGrid.Pagination />
+          </DataGrid.Container>
+        </DataGrid.Provider>
+
+        <Box>
+          <Typography variant="h6">Bare table</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Just Provider + Container + Table + Pagination — no toolbar.
+          </Typography>
         </Box>
+        <DataGrid.Provider<Sale>
+          columns={columns}
+          rows={allRows}
+          getRowId={(r) => r.id}
+          pagination={{ pageSize: 10 }}
+        >
+          <DataGrid.Container height={360}>
+            <DataGrid.Table<Sale> />
+            <DataGrid.Pagination pageSizeOptions={[5, 10, 20]} />
+          </DataGrid.Container>
+        </DataGrid.Provider>
       </Stack>
     </Container>
   );

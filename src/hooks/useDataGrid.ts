@@ -33,7 +33,7 @@ export interface UseDataGridResult<T> {
 /**
  * Headless core: resolves columns, wires state and derives the presentational
  * flags the UI needs. Use this directly to build a fully custom grid, or let
- * `<DataGrid.Root>` provide it through context.
+ * `<DataGrid.Provider>` provide it through context.
  */
 export function useDataGrid<T>(props: DataGridProps<T>): UseDataGridResult<T> {
   const {

@@ -1,4 +1,5 @@
 import type {
+  Cell,
   ColumnDef,
   ColumnFiltersState,
   GroupingState,
@@ -9,7 +10,7 @@ import type {
   VisibilityState,
   ExpandedState,
 } from '@tanstack/react-table';
-import type { ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 import type { CellStyle, DataGridConfig, StyleRule } from './columns/columnConfig';
 
 export type Density = 'compact' | 'standard' | 'comfortable';
@@ -127,6 +128,15 @@ export interface DataGridState {
   aggregationOverrides: Record<string, AggregationFn>;
 }
 
+export interface CellClickParams<T> {
+  value: unknown;
+  row: T;
+  rowId: string;
+  columnId: string;
+  cell: Cell<T, unknown>;
+  event: MouseEvent;
+}
+
 export interface DataGridProps<T> {
   /**
    * Column configuration. Accepts either:
@@ -172,6 +182,9 @@ export interface DataGridProps<T> {
 
   enableCsvExport?: boolean;
   csvFileName?: string;
+
+  /** Fired when a data cell is clicked (not the selection or group-toggle cells). */
+  onCellClick?: (params: CellClickParams<T>) => void;
 }
 
 export type DataGridTable<T> = Table<T>;
