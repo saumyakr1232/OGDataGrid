@@ -38,20 +38,20 @@ export function GroupByMenu<T>({ table }: { table: Table<T> }) {
             </MenuItem>
           );
         })}
-        {grouping.length > 0 && (
-          <>
-            <Divider />
-            <MenuItem onClick={() => table.resetGrouping(true)} dense>
-              <ListItemText>Clear groups</ListItemText>
-            </MenuItem>
-            <MenuItem onClick={() => table.toggleAllRowsExpanded(true)} dense>
-              <ListItemText>Expand all</ListItemText>
-            </MenuItem>
-            <MenuItem onClick={() => table.toggleAllRowsExpanded(false)} dense>
-              <ListItemText>Collapse all</ListItemText>
-            </MenuItem>
-          </>
-        )}
+        {/* An array (not a Fragment) — MUI's Menu clones its children for
+            keyboard nav and warns when handed a Fragment. */}
+        {grouping.length > 0 && [
+          <Divider key="divider" />,
+          <MenuItem key="clear" onClick={() => table.resetGrouping(true)} dense>
+            <ListItemText>Clear groups</ListItemText>
+          </MenuItem>,
+          <MenuItem key="expand-all" onClick={() => table.toggleAllRowsExpanded(true)} dense>
+            <ListItemText>Expand all</ListItemText>
+          </MenuItem>,
+          <MenuItem key="collapse-all" onClick={() => table.toggleAllRowsExpanded(false)} dense>
+            <ListItemText>Collapse all</ListItemText>
+          </MenuItem>,
+        ]}
       </Menu>
     </>
   );
