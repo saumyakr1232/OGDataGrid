@@ -72,11 +72,19 @@ export function useDataGrid<T>(props: DataGridProps<T>): UseDataGridResult<T> {
     [suppliedColumns, rows],
   );
 
-  const initialState = useMemo(
-    () =>
-      resolvedConfig ? { ...resolvedConfig.initialState, ...props.initialState } : props.initialState,
-    [resolvedConfig, props.initialState],
-  );
+  const paginating = pagination !== false;
+  const paginationOpts = paginating
+    ? (pagination as { pageSize?: number; pageSizeOptions?: number[] })
+    : undefined;
+
+  const initialState = useMemo(() => {
+    const merged = { ...resolvedConfig?.initialState, ...props.initialState };
+    // seed page size from the pagination prop unless initialState already set it
+    if (paginationOpts?.pageSize != null && !merged.pagination) {
+      merged.pagination = { pageIndex: 0, pageSize: paginationOpts.pageSize };
+    }
+    return merged;
+  }, [resolvedConfig, props.initialState, paginationOpts?.pageSize]);
 
   const enrichedColumns = useMemo(() => {
     const out = [...baseColumns];
@@ -91,11 +99,6 @@ export function useDataGrid<T>(props: DataGridProps<T>): UseDataGridResult<T> {
     enableColumnResizing,
     enableGrouping,
   });
-
-  const paginating = pagination !== false;
-  const paginationOpts = paginating
-    ? (pagination as { pageSize?: number; pageSizeOptions?: number[] })
-    : undefined;
 
   return {
     table,

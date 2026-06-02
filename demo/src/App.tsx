@@ -192,17 +192,27 @@ export default function App() {
         <Box>
           <Typography variant="h6">Composed</Typography>
           <Typography variant="body2" color="text.secondary">
-            Same grid, assembled from parts — pagination on top, no toolbar.
+            Same grid, assembled from parts — a trimmed toolbar, pagination on top, 10 rows/page.
           </Typography>
         </Box>
-        <Box sx={{ height: 420 }}>
+        <Box sx={{ height: 460 }}>
           <DataGrid.Root<Sale>
             columns={columns}
             rows={allRows}
             getRowId={(r) => r.id}
             pagination={{ mode: 'client', pageSize: 10 }}
+            toolbar={{
+              quickFilter: true,
+              columns: true,
+              density: true,
+              groupBy: false,
+              advancedFilter: false,
+              columnFilters: false,
+              export: false,
+            }}
           >
             <DataGrid.Header title="Sales (composed)" />
+            <DataGrid.Toolbar />
             <DataGrid.Pagination />
             <DataGrid.Table<Sale> />
           </DataGrid.Root>
