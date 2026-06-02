@@ -10,6 +10,15 @@ export { DataGridHeader } from './compound/Header';
 export { DataGridToolbar } from './compound/Toolbar';
 export { DataGridTable } from './compound/Table';
 export { DataGridPagination } from './compound/Pagination';
+export {
+  DataGridQuickFilter,
+  DataGridFilterToggle,
+  DataGridAdvancedFilter,
+  DataGridColumnsButton,
+  DataGridGroupByButton,
+  DataGridDensityButton,
+  DataGridExportButton,
+} from './compound/toolbar-parts';
 
 export type {
   DataGridProps,

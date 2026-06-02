@@ -1,36 +1,36 @@
-import { useState } from 'react';
-import { Toolbar } from '../components/Toolbar';
-import { AdvancedFilterPanel } from '../components/AdvancedFilterPanel';
-import { exportTableToCsv } from '../export/toCsv';
+import { Box, type BoxProps } from '@mui/material';
+import { GridToolbar } from '../styled';
 import { useDataGridContext } from './context';
+import {
+  DataGridAdvancedFilter,
+  DataGridColumnsButton,
+  DataGridDensityButton,
+  DataGridExportButton,
+  DataGridFilterToggle,
+  DataGridGroupByButton,
+  DataGridQuickFilter,
+} from './toolbar-parts';
 
-export function DataGridToolbar() {
-  const { table, state, setters, tools, slots, csvFileName } = useDataGridContext();
-  const [advOpen, setAdvOpen] = useState(false);
+/**
+ * Toolbar layout container. With no children it renders the default set of
+ * tools (honouring the `toolbar` prop flags); pass children to compose your own.
+ */
+export function DataGridToolbar({ children }: { children?: BoxProps['children'] }) {
+  const { tools, slots } = useDataGridContext();
+
+  if (children) return <GridToolbar>{children}</GridToolbar>;
 
   return (
-    <>
-      <Toolbar
-        table={table}
-        showFilters={state.showFilters}
-        onToggleFilters={() => setters.setShowFilters(!state.showFilters)}
-        globalFilter={state.globalFilter}
-        onGlobalFilterChange={setters.setGlobalFilter}
-        onOpenAdvanced={() => setAdvOpen(true)}
-        advancedFilter={state.advancedFilter}
-        density={state.density}
-        onDensityChange={setters.setDensity}
-        tools={tools}
-        onExportCsv={() => exportTableToCsv(table, csvFileName)}
-        extras={slots?.toolbarExtras}
-      />
-      <AdvancedFilterPanel
-        open={advOpen}
-        onClose={() => setAdvOpen(false)}
-        table={table}
-        value={state.advancedFilter}
-        onChange={setters.setAdvancedFilter}
-      />
-    </>
+    <GridToolbar>
+      {tools.quickFilter && <DataGridQuickFilter />}
+      {tools.columnFilters && <DataGridFilterToggle />}
+      {tools.advancedFilter && <DataGridAdvancedFilter />}
+      {tools.columns && <DataGridColumnsButton />}
+      {tools.groupBy && <DataGridGroupByButton />}
+      {tools.density && <DataGridDensityButton />}
+      {tools.export && <DataGridExportButton />}
+      <Box sx={{ flex: 1 }} />
+      {slots?.toolbarExtras}
+    </GridToolbar>
   );
 }

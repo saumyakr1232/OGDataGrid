@@ -3,6 +3,15 @@ import { DataGridHeader } from './compound/Header';
 import { DataGridToolbar } from './compound/Toolbar';
 import { DataGridTable } from './compound/Table';
 import { DataGridPagination } from './compound/Pagination';
+import {
+  DataGridAdvancedFilter,
+  DataGridColumnsButton,
+  DataGridDensityButton,
+  DataGridExportButton,
+  DataGridFilterToggle,
+  DataGridGroupByButton,
+  DataGridQuickFilter,
+} from './compound/toolbar-parts';
 import type { DataGridProps } from './types';
 
 function DataGridBase<T>(props: DataGridProps<T>) {
@@ -29,4 +38,12 @@ export const DataGrid = Object.assign(DataGridBase, {
   Toolbar: DataGridToolbar,
   Table: DataGridTable,
   Pagination: DataGridPagination,
+  // composable toolbar pieces
+  QuickFilter: DataGridQuickFilter,
+  FilterToggle: DataGridFilterToggle,
+  AdvancedFilter: DataGridAdvancedFilter,
+  ColumnsButton: DataGridColumnsButton,
+  GroupByButton: DataGridGroupByButton,
+  DensityButton: DataGridDensityButton,
+  ExportButton: DataGridExportButton,
 });
