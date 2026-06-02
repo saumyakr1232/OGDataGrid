@@ -9,8 +9,9 @@ import { DataGrid, type DataGridConfig } from 'og-data-grid';
 // Cell styling exposes exactly four serializable properties, settable as a
 // static `cellStyle` (always applied) and/or per `styleRules` (applied when the
 // rule's `op` matches the cell value, later matches winning):
-//   - textColor       → CSS color   (any color string)
-//   - backgroundColor  → CSS background-color
+//   - variant          → "text" (default) | "chip" (renders a rounded pill)
+//   - textColor        → CSS color   (any color string)
+//   - backgroundColor  → CSS background-color (the chip fill, for the chip variant)
 //   - fontWeight       → "normal" | "bold"
 //   - fontStyle        → "normal" | "italic"
 // The columns below demonstrate every one of them.
@@ -22,10 +23,10 @@ const SAVED_LAYOUT = `{
       "field": "region",
       "groupable": true,
       "styleRules": [
-        { "op": "equals", "value": "North", "style": { "textColor": "#1565c0", "fontWeight": "bold" } },
-        { "op": "equals", "value": "South", "style": { "textColor": "#ef6c00", "fontWeight": "bold" } },
-        { "op": "equals", "value": "East", "style": { "textColor": "#00897b", "fontStyle": "italic" } },
-        { "op": "equals", "value": "West", "style": { "textColor": "#6a1b9a" } }
+        { "op": "equals", "value": "North", "style": { "variant": "chip", "backgroundColor": "#e3f2fd", "textColor": "#1565c0", "fontWeight": "bold" } },
+        { "op": "equals", "value": "South", "style": { "variant": "chip", "backgroundColor": "#fff3e0", "textColor": "#ef6c00", "fontWeight": "bold" } },
+        { "op": "equals", "value": "East", "style": { "variant": "chip", "backgroundColor": "#e0f2f1", "textColor": "#00897b" } },
+        { "op": "equals", "value": "West", "style": { "variant": "chip", "backgroundColor": "#f3e5f5", "textColor": "#6a1b9a" } }
       ]
     },
     {
@@ -85,8 +86,8 @@ const SAVED_LAYOUT = `{
       "header": "Active",
       "format": "boolean",
       "styleRules": [
-        { "op": "equals", "value": true, "style": { "textColor": "#2e7d32", "fontWeight": "bold" } },
-        { "op": "equals", "value": false, "style": { "textColor": "#9e9e9e", "fontStyle": "italic" } }
+        { "op": "equals", "value": true, "style": { "variant": "chip", "backgroundColor": "#e8f5e9", "textColor": "#2e7d32", "fontWeight": "bold" } },
+        { "op": "equals", "value": false, "style": { "variant": "chip", "backgroundColor": "#fdecea", "textColor": "#b00020" } }
       ]
     }
   ],

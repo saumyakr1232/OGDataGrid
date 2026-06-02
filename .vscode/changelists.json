@@ -1,0 +1,19 @@
+{
+  "changelists": [
+    {
+      "name": "Default",
+      "files": [
+        "demo/src/App.tsx",
+        "src/DataGrid.tsx",
+        "src/columns/columnConfig.test.ts",
+        "src/columns/columnConfig.ts",
+        "src/index.ts",
+        "src/types.ts",
+        "src/columns/cellStyle.test.ts",
+        "src/columns/cellStyle.ts",
+        ".vscode/changelists.json"
+      ]
+    }
+  ],
+  "active": "Default"
+}

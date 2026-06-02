@@ -1,5 +1,5 @@
 import { createElement, type ReactNode } from 'react';
-import { resolveCellStyle } from './cellStyle';
+import { renderChip, resolveCellStyleSpec } from './cellStyle';
 import type {
   AggregationFn,
   DataGridColumnDef,
@@ -51,9 +51,15 @@ export interface ColumnFilterConfig {
 
 /** Serializable visual styling for a cell. */
 export interface CellStyle {
+  /**
+   * How the value is presented. `'text'` (default) styles the cell text in
+   * place; `'chip'` renders the value inside a rounded pill using
+   * `backgroundColor`/`textColor` (with a subtle default background).
+   */
+  variant?: 'text' | 'chip';
   /** CSS color applied to the text. */
   textColor?: string;
-  /** CSS background color applied to the cell. */
+  /** CSS background color applied to the cell (or chip, for the `chip` variant). */
   backgroundColor?: string;
   fontWeight?: 'normal' | 'bold';
   fontStyle?: 'normal' | 'italic';
@@ -229,8 +235,12 @@ function mergedCellRenderer<T>(
     return fields.flatMap((f, i) => {
       const src = lookup.get(f);
       const raw = getByPath(original, f);
-      const css = resolveCellStyle(raw, src?.cellStyle, src?.styleRules);
-      const part = createElement('span', { key: f, style: css }, formatPart(raw, src));
+      const text = formatPart(raw, src);
+      const spec = resolveCellStyleSpec(raw, src?.cellStyle, src?.styleRules);
+      const part =
+        spec?.variant === 'chip'
+          ? renderChip(text, spec.css, f)
+          : createElement('span', { key: f, style: spec?.css }, text);
       return i === 0 ? [part] : [separator, part];
     });
   };

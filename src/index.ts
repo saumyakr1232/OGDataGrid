@@ -34,8 +34,11 @@ export type {
 } from './columns/columnConfig';
 export {
   resolveCellStyle,
+  resolveCellStyleSpec,
   cellStyleToCss,
   matchStyleCondition,
+  renderChip,
 } from './columns/cellStyle';
+export type { ResolvedCellStyle } from './columns/cellStyle';
 export { dateFilterFn } from './components/filters/DateFilter';
 export type { DateOp, DateCondition, DateFilterValue } from './components/filters/DateFilter';

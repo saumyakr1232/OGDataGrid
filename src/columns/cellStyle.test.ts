@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { cellStyleToCss, matchStyleCondition, resolveCellStyle } from './cellStyle';
+import {
+  cellStyleToCss,
+  matchStyleCondition,
+  resolveCellStyle,
+  resolveCellStyleSpec,
+} from './cellStyle';
 
 describe('matchStyleCondition', () => {
   it('handles equality and string operators', () => {
@@ -61,5 +66,35 @@ describe('resolveCellStyle', () => {
       { op: 'gte', value: 8000, style: { textColor: 'green', fontWeight: 'bold' } },
     ]);
     expect(css).toEqual({ color: 'green', backgroundColor: '#eee', fontWeight: 'bold' });
+  });
+
+  it('ignores the chip variant when producing CSS (variant is not CSS)', () => {
+    expect(resolveCellStyle('x', { variant: 'chip', textColor: 'red' })).toEqual({ color: 'red' });
+  });
+});
+
+describe('resolveCellStyleSpec', () => {
+  it('returns undefined for an unstyled text cell', () => {
+    expect(resolveCellStyleSpec('x')).toBeUndefined();
+    expect(resolveCellStyleSpec('x', { variant: 'text' })).toBeUndefined();
+  });
+
+  it('reports the text variant with its CSS', () => {
+    expect(resolveCellStyleSpec('x', { textColor: 'red' })).toEqual({
+      variant: 'text',
+      css: { color: 'red' },
+    });
+  });
+
+  it('reports the chip variant even with no colors', () => {
+    expect(resolveCellStyleSpec('x', { variant: 'chip' })).toEqual({ variant: 'chip', css: {} });
+  });
+
+  it('lets a rule promote a cell to a chip', () => {
+    expect(
+      resolveCellStyleSpec('Active', undefined, [
+        { op: 'equals', value: 'Active', style: { variant: 'chip', backgroundColor: '#e8f5e9' } },
+      ]),
+    ).toEqual({ variant: 'chip', css: { backgroundColor: '#e8f5e9' } });
   });
 });
