@@ -10,7 +10,7 @@ import type {
   ExpandedState,
 } from '@tanstack/react-table';
 import type { ReactNode } from 'react';
-import type { DataGridConfig } from './columns/columnConfig';
+import type { CellStyle, DataGridConfig, StyleRule } from './columns/columnConfig';
 
 export type Density = 'compact' | 'standard' | 'comfortable';
 
@@ -42,6 +42,10 @@ export interface DataGridColumnMeta<T = unknown> {
   groupable?: boolean;
   aggregationFn?: AggregationFn;
   aggregatedCell?: (info: { value: unknown; rowCount: number }) => ReactNode;
+  /** Static style applied to every cell of the column. */
+  cellStyle?: CellStyle;
+  /** Conditional styles evaluated against the cell value; later matches win. */
+  styleRules?: StyleRule[];
 }
 
 export type DataGridColumnDef<T> = ColumnDef<T, unknown> & {

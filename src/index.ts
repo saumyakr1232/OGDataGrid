@@ -27,6 +27,15 @@ export type {
   ColumnFormat,
   ColumnFormatOptions,
   SerializableValue,
+  CellStyle,
+  StyleRule,
+  StyleConditionOp,
+  MergeConfig,
 } from './columns/columnConfig';
+export {
+  resolveCellStyle,
+  cellStyleToCss,
+  matchStyleCondition,
+} from './columns/cellStyle';
 export { dateFilterFn } from './components/filters/DateFilter';
 export type { DateOp, DateCondition, DateFilterValue } from './components/filters/DateFilter';

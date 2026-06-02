@@ -5,18 +5,90 @@ import { DataGrid, type DataGridConfig } from 'og-data-grid';
 // A serializable column layout, exactly as it might be persisted in a DB.
 // Note it is a plain JSON string — no functions — yet it configures headers,
 // widths, alignment, value formatting, filters, grouping and sorting.
+//
+// Cell styling exposes exactly four serializable properties, settable as a
+// static `cellStyle` (always applied) and/or per `styleRules` (applied when the
+// rule's `op` matches the cell value, later matches winning):
+//   - textColor       → CSS color   (any color string)
+//   - backgroundColor  → CSS background-color
+//   - fontWeight       → "normal" | "bold"
+//   - fontStyle        → "normal" | "italic"
+// The columns below demonstrate every one of them.
 const SAVED_LAYOUT = `{
   "columns": [
     { "field": "id", "header": "ID", "width": 90 },
     { "field": "date", "header": "Date", "format": "date", "width": 130 },
-    { "field": "region", "groupable": true },
-    { "field": "category", "groupable": true },
+    {
+      "field": "region",
+      "groupable": true,
+      "styleRules": [
+        { "op": "equals", "value": "North", "style": { "textColor": "#1565c0", "fontWeight": "bold" } },
+        { "op": "equals", "value": "South", "style": { "textColor": "#ef6c00", "fontWeight": "bold" } },
+        { "op": "equals", "value": "East", "style": { "textColor": "#00897b", "fontStyle": "italic" } },
+        { "op": "equals", "value": "West", "style": { "textColor": "#6a1b9a" } }
+      ]
+    },
+    {
+      "field": "category",
+      "groupable": true,
+      "cellStyle": { "fontStyle": "italic" },
+      "styleRules": [
+        { "op": "equals", "value": "Hardware", "style": { "backgroundColor": "#e3f2fd" } },
+        { "op": "equals", "value": "Software", "style": { "backgroundColor": "#f3e5f5" } },
+        { "op": "equals", "value": "Services", "style": { "backgroundColor": "#e8f5e9" } }
+      ]
+    },
     { "field": "product", "header": "Product", "width": 150 },
+    {
+      "field": "regionProduct",
+      "header": "Region / Product",
+      "width": 200,
+      "merge": { "fields": ["region", "product"], "separator": " — " }
+    },
     { "field": "rep", "header": "Sales Rep", "groupable": true },
-    { "field": "units", "header": "Units", "align": "right", "format": "number", "aggregation": "sum" },
-    { "field": "unitPrice", "header": "Unit Price", "align": "right", "format": "currency", "formatOptions": { "currency": "USD" }, "aggregation": "avg" },
-    { "field": "revenue", "header": "Revenue", "align": "right", "format": "currency", "formatOptions": { "currency": "USD", "maximumFractionDigits": 0 }, "aggregation": "sum" },
-    { "field": "active", "header": "Active", "format": "boolean" }
+    {
+      "field": "units",
+      "header": "Units",
+      "align": "right",
+      "format": "number",
+      "aggregation": "sum",
+      "styleRules": [
+        { "op": "lt", "value": 10, "style": { "textColor": "#9e9e9e", "fontStyle": "italic" } },
+        { "op": "gte", "value": 40, "style": { "textColor": "#2e7d32", "fontWeight": "bold" } }
+      ]
+    },
+    {
+      "field": "unitPrice",
+      "header": "Unit Price",
+      "align": "right",
+      "format": "currency",
+      "formatOptions": { "currency": "USD" },
+      "aggregation": "avg",
+      "styleRules": [
+        { "op": "between", "value": 200, "value2": 300, "style": { "backgroundColor": "#fff3e0", "fontWeight": "bold" } }
+      ]
+    },
+    {
+      "field": "revenue",
+      "header": "Revenue",
+      "align": "right",
+      "format": "currency",
+      "formatOptions": { "currency": "USD", "maximumFractionDigits": 0 },
+      "aggregation": "sum",
+      "styleRules": [
+        { "op": "lt", "value": 2000, "style": { "textColor": "#b00020" } },
+        { "op": "gte", "value": 8000, "style": { "backgroundColor": "#e6f4ea", "fontWeight": "bold" } }
+      ]
+    },
+    {
+      "field": "active",
+      "header": "Active",
+      "format": "boolean",
+      "styleRules": [
+        { "op": "equals", "value": true, "style": { "textColor": "#2e7d32", "fontWeight": "bold" } },
+        { "op": "equals", "value": false, "style": { "textColor": "#9e9e9e", "fontStyle": "italic" } }
+      ]
+    }
   ],
   "sorting": [{ "field": "revenue", "desc": true }]
 }`;

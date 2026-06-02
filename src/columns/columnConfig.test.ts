@@ -103,3 +103,51 @@ describe('resolveDataGridConfig', () => {
     expect(again.columns.map((c) => c.header)).toEqual(columns.map((c) => c.header));
   });
 });
+
+describe('resolveDataGridConfig — merged columns', () => {
+  const config: DataGridConfig = {
+    columns: [
+      { field: 'region' },
+      { field: 'unitPrice', format: 'currency', formatOptions: { currency: 'USD' } },
+      { field: 'regionPrice', header: 'Region / Price', merge: { fields: ['region', 'unitPrice'], separator: ' — ' } },
+      { field: 'fullName', merge: { fields: ['first', 'last'] } },
+    ],
+  };
+  const { columns } = resolveDataGridConfig(config);
+  const byId = (id: string) => columns.find((c) => (c as { id?: string }).id === id)!;
+
+  it('emits an id + accessorFn instead of accessorKey for a merged column', () => {
+    const merged = byId('regionPrice') as { id: string; accessorKey?: string; accessorFn?: (r: unknown) => unknown };
+    expect(merged.id).toBe('regionPrice');
+    expect(merged.accessorKey).toBeUndefined();
+    expect(typeof merged.accessorFn).toBe('function');
+  });
+
+  it('joins source values, formatting each part by its source column', () => {
+    const merged = byId('regionPrice') as { accessorFn: (r: unknown) => unknown };
+    expect(merged.accessorFn({ region: 'North', unitPrice: 1234.5 })).toBe(`North — ${formatCellValue(1234.5, 'currency', { currency: 'USD' })}`);
+  });
+
+  it('defaults the separator to a single space', () => {
+    const merged = byId('fullName') as { accessorFn: (r: unknown) => unknown };
+    expect(merged.accessorFn({ first: 'Ada', last: 'Lovelace' })).toBe('Ada Lovelace');
+  });
+});
+
+describe('resolveDataGridConfig — cell styling', () => {
+  const config: DataGridConfig = {
+    columns: [
+      {
+        field: 'revenue',
+        cellStyle: { fontWeight: 'bold' },
+        styleRules: [{ op: 'lt', value: 2000, style: { textColor: '#b00020' } }],
+      },
+    ],
+  };
+  const { columns } = resolveDataGridConfig(config);
+
+  it('carries cellStyle and styleRules onto meta', () => {
+    expect(columns[0].meta?.cellStyle).toEqual({ fontWeight: 'bold' });
+    expect(columns[0].meta?.styleRules).toEqual([{ op: 'lt', value: 2000, style: { textColor: '#b00020' } }]);
+  });
+});

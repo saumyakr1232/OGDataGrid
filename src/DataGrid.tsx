@@ -23,6 +23,7 @@ import { AdvancedFilterPanel } from './components/AdvancedFilterPanel';
 import { exportTableToCsv } from './export/toCsv';
 import { generateColumns } from './columns/generateColumns';
 import { isDataGridConfig, resolveDataGridConfig } from './columns/columnConfig';
+import { resolveCellStyle } from './columns/cellStyle';
 import {
   BodyCell,
   BodyRow,
@@ -347,8 +348,14 @@ function DataRow<T>({
         // columns (e.g. the selection checkbox) have no accessor and would
         // otherwise read as "empty" and lose their custom cell.
         const isEmpty = !!cell.column.accessorFn && (value == null || value === '');
+        const styleCss = resolveCellStyle(value, meta?.cellStyle, meta?.styleRules);
         return (
-          <BodyCell key={cell.id} density={density} align={align} style={{ width: cell.column.getSize() }}>
+          <BodyCell
+            key={cell.id}
+            density={density}
+            align={align}
+            style={{ width: cell.column.getSize(), ...styleCss }}
+          >
             {isEmpty ? (
               <Box component="span" sx={{ color: 'text.disabled' }}>
                 {emptyText}
