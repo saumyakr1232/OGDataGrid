@@ -180,6 +180,17 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
         ? ' __adv__ '
         : '';
 
+  // TanStack caches each grouped row's aggregated value and only rebuilds its
+  // grouped row model when `grouping` or the pre-grouped rows change — never
+  // when a column's aggregationFn changes. So when the user picks a different
+  // aggregation we hand it a fresh `grouping` array reference, which busts that
+  // memo and recomputes the cache with the new function. `autoResetExpanded:
+  // false` (below) keeps groups expanded across the rebuild.
+  const groupingForTable = useMemo(
+    () => [...grouping],
+    [grouping, aggregationOverrides],
+  );
+
   const table = useReactTable<T>({
     data: rows,
     columns: cols as DataGridColumnDef<T>[],
@@ -189,7 +200,7 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
       columnVisibility,
       rowSelection,
       pagination: paginationState,
-      grouping,
+      grouping: groupingForTable,
       expanded,
       globalFilter: effectiveGlobalFilter,
       columnSizing,
@@ -217,6 +228,7 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
     enableMultiRowSelection: enableSelection && selection?.mode === 'multi',
     enableGrouping,
     autoResetPageIndex: true,
+    autoResetExpanded: false,
     globalFilterFn: (row, _columnId, _filterValue) => {
       const adv = advancedFilter;
       if (adv && !evalGroup(adv, row)) return false;
