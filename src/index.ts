@@ -1,4 +1,16 @@
 export { DataGrid } from './DataGrid';
+
+// Headless core + compound parts, for building a custom grid layout.
+export { useDataGrid, SELECTION_COL_ID } from './hooks/useDataGrid';
+export type { UseDataGridResult, ResolvedTools } from './hooks/useDataGrid';
+export { useDataGridContext } from './compound/context';
+export type { DataGridContextValue } from './compound/context';
+export { DataGridRoot } from './compound/Root';
+export { DataGridHeader } from './compound/Header';
+export { DataGridToolbar } from './compound/Toolbar';
+export { DataGridTable } from './compound/Table';
+export { DataGridPagination } from './compound/Pagination';
+
 export type {
   DataGridProps,
   DataGridColumnDef,

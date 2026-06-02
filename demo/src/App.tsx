@@ -188,6 +188,25 @@ export default function App() {
             }}
           />
         </Box>
+
+        <Box>
+          <Typography variant="h6">Composed</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Same grid, assembled from parts — pagination on top, no toolbar.
+          </Typography>
+        </Box>
+        <Box sx={{ height: 420 }}>
+          <DataGrid.Root<Sale>
+            columns={columns}
+            rows={allRows}
+            getRowId={(r) => r.id}
+            pagination={{ mode: 'client', pageSize: 10 }}
+          >
+            <DataGrid.Header title="Sales (composed)" />
+            <DataGrid.Pagination />
+            <DataGrid.Table<Sale> />
+          </DataGrid.Root>
+        </Box>
       </Stack>
     </Container>
   );
