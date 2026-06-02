@@ -180,12 +180,8 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
         ? ' __adv__ '
         : '';
 
-  // TanStack caches each grouped row's aggregated value and only rebuilds its
-  // grouped row model when `grouping` or the pre-grouped rows change — never
-  // when a column's aggregationFn changes. So when the user picks a different
-  // aggregation we hand it a fresh `grouping` array reference, which busts that
-  // memo and recomputes the cache with the new function. `autoResetExpanded:
-  // false` (below) keeps groups expanded across the rebuild.
+  // TanStack caches aggregated values and won't recompute them on an aggregationFn
+  // change alone, so give it a fresh grouping ref to bust that memo.
   const groupingForTable = useMemo(
     () => [...grouping],
     [grouping, aggregationOverrides],

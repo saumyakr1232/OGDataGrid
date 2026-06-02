@@ -2,19 +2,9 @@ import { useMemo } from 'react';
 import { Box, Container, Stack, Typography } from '@mui/material';
 import { DataGrid, type DataGridConfig } from 'og-data-grid';
 
-// A serializable column layout, exactly as it might be persisted in a DB.
-// Note it is a plain JSON string — no functions — yet it configures headers,
-// widths, alignment, value formatting, filters, grouping and sorting.
-//
-// Cell styling exposes exactly four serializable properties, settable as a
-// static `cellStyle` (always applied) and/or per `styleRules` (applied when the
-// rule's `op` matches the cell value, later matches winning):
-//   - variant          → "text" (default) | "chip" (renders a rounded pill)
-//   - textColor        → CSS color   (any color string)
-//   - backgroundColor  → CSS background-color (the chip fill, for the chip variant)
-//   - fontWeight       → "normal" | "bold"
-//   - fontStyle        → "normal" | "italic"
-// The columns below demonstrate every one of them.
+// A serializable column layout, as it might be persisted in a DB — plain JSON,
+// no functions. Also shows off cellStyle/styleRules (variant, textColor,
+// backgroundColor, fontWeight, fontStyle) and a merged column.
 const SAVED_LAYOUT = `{
   "columns": [
     { "field": "id", "header": "ID", "width": 90 },

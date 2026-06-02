@@ -49,17 +49,10 @@ export interface ColumnFilterConfig {
   options?: { label: string; value: SerializableValue }[];
 }
 
-/** Serializable visual styling for a cell. */
 export interface CellStyle {
-  /**
-   * How the value is presented. `'text'` (default) styles the cell text in
-   * place; `'chip'` renders the value inside a rounded pill using
-   * `backgroundColor`/`textColor` (with a subtle default background).
-   */
+  /** `'chip'` renders the value as a rounded pill; defaults to plain text. */
   variant?: 'text' | 'chip';
-  /** CSS color applied to the text. */
   textColor?: string;
-  /** CSS background color applied to the cell (or chip, for the `chip` variant). */
   backgroundColor?: string;
   fontWeight?: 'normal' | 'bold';
   fontStyle?: 'normal' | 'italic';
@@ -80,24 +73,18 @@ export type StyleConditionOp =
   | 'isEmpty'
   | 'isNotEmpty';
 
-/** A conditional style: when `op` matches the cell's own value, apply `style`. */
+/** Applies `style` when `op` matches the cell value. */
 export interface StyleRule {
   op: StyleConditionOp;
   value?: SerializableValue;
-  /** Upper bound for the `between` operator. */
   value2?: SerializableValue;
   style: CellStyle;
 }
 
-/**
- * Merge several source row fields into one synthetic column. The merged value is
- * each source field, formatted by its own column's `format`/`formatOptions`,
- * joined by `separator`.
- */
+/** Combines several fields into one column, each formatted by its own column. */
 export interface MergeConfig {
-  /** Source row fields, in display order (dotted paths supported). */
   fields: string[];
-  /** Inserted between parts. Defaults to a single space. */
+  /** Defaults to a single space. */
   separator?: string;
 }
 
@@ -122,14 +109,9 @@ export interface ColumnConfig {
   /** How to render the cell value. */
   format?: ColumnFormat;
   formatOptions?: ColumnFormatOptions;
-  /**
-   * Merge several source fields into this synthetic column. When set, `field`
-   * is the column's id/key (e.g. "grouped_col1+2") rather than a row accessor.
-   */
+  /** When set, `field` is the column id/key rather than a row accessor. */
   merge?: MergeConfig;
-  /** Static style applied to every cell of this column. */
   cellStyle?: CellStyle;
-  /** Conditional styles evaluated against the cell value; later matches win. */
   styleRules?: StyleRule[];
 }
 
@@ -199,7 +181,6 @@ export function formatCellValue(
   }
 }
 
-/** Read a (possibly dotted) path off a row object, e.g. "address.city". */
 function getByPath(obj: unknown, path: string): unknown {
   if (obj == null) return undefined;
   if (!path.includes('.')) return (obj as Record<string, unknown>)[path];
@@ -208,23 +189,20 @@ function getByPath(obj: unknown, path: string): unknown {
     .reduce<unknown>((acc, key) => (acc == null ? acc : (acc as Record<string, unknown>)[key]), obj);
 }
 
-/** Format a single source value as plain text per a source column's config. */
 function formatPart(value: unknown, src?: ColumnConfig): string {
   if (src?.format) return String(formatCellValue(value, src.format, src.formatOptions));
   if (value == null) return '';
   return String(value);
 }
 
-/** Build the cell renderer for a merged column (declared via `c.merge`). */
 function mergedCellRenderer<T>(
   c: ColumnConfig,
   lookup: Map<string, ColumnConfig>,
 ): (info: { row: { original: T } }) => ReactNode {
   const fields = c.merge!.fields;
   const separator = c.merge!.separator ?? ' ';
-  // When the merged column declares its own styling, the whole cell is styled by
-  // the meta path in DataRow, so render the joined text plainly here. Otherwise
-  // each part keeps its source column's styling, rendered as styled spans.
+  // with its own style the whole cell is styled in DataRow, so just join text here.
+  // otherwise each part carries its source column's style as a span.
   const ownStyling = !!c.cellStyle || (!!c.styleRules && c.styleRules.length > 0);
 
   return ({ row }) => {
@@ -246,7 +224,6 @@ function mergedCellRenderer<T>(
   };
 }
 
-/** Build a TanStack column def from one serializable column config. */
 function configToColumnDef<T>(
   c: ColumnConfig,
   lookup: Map<string, ColumnConfig>,
@@ -267,8 +244,7 @@ function configToColumnDef<T>(
   };
 
   if (c.merge) {
-    // A merged column has no row accessor; its joined string (each part formatted
-    // by its source column) drives display, sort, filter, search and CSV.
+    // no row accessor — the joined string drives display, sort, filter and CSV
     const fields = c.merge.fields;
     const separator = c.merge.separator ?? ' ';
     def.id = c.field;

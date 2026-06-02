@@ -1,20 +1,9 @@
 import { createElement, type CSSProperties, type ReactNode } from 'react';
 import type { CellStyle, StyleConditionOp, StyleRule } from './columnConfig';
 
-/**
- * Serializable conditional-styling helpers.
- *
- * `CellStyle`/`StyleRule` live on the JSON-serializable `ColumnConfig`, so all
- * matching and CSS mapping must work from plain primitives — no functions are
- * involved. The operator semantics mirror the advanced-filter `evalRule`
- * (see `useDataGridState`), but are kept here so the styling path stays
- * independent of the filtering path.
- */
-
 const asNum = (x: unknown) => (typeof x === 'number' ? x : Number(x));
 const asStr = (x: unknown) => (x == null ? '' : String(x));
 
-/** Evaluate one style condition against a cell value. */
 export function matchStyleCondition(
   value: unknown,
   op: StyleConditionOp,
@@ -53,7 +42,6 @@ export function matchStyleCondition(
   }
 }
 
-/** Map a serializable `CellStyle` to React CSS properties (the `variant` is not CSS). */
 export function cellStyleToCss(style: CellStyle): CSSProperties {
   const css: CSSProperties = {};
   if (style.textColor) css.color = style.textColor;
@@ -63,13 +51,11 @@ export function cellStyleToCss(style: CellStyle): CSSProperties {
   return css;
 }
 
-/** The effective presentation of a cell after merging base style + rules. */
 export interface ResolvedCellStyle {
   variant: 'text' | 'chip';
   css: CSSProperties;
 }
 
-/** Static base layout for the `chip` variant; resolved colors merge on top. */
 const CHIP_BASE_CSS: CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
@@ -82,7 +68,7 @@ const CHIP_BASE_CSS: CSSProperties = {
 };
 const CHIP_DEFAULT_BG = 'rgba(0,0,0,0.08)';
 
-/** Merge the static `cellStyle` with each matching rule (later matches win). */
+// base style first, then each matching rule on top (last one wins)
 function mergeStyle(
   value: unknown,
   cellStyle?: CellStyle,
@@ -99,11 +85,6 @@ function mergeStyle(
   return merged;
 }
 
-/**
- * Resolve the effective CSS for a cell. Returns `undefined` when nothing applies
- * so callers can skip spreading an empty object. (CSS only — see
- * `resolveCellStyleSpec` for the chip variant.)
- */
 export function resolveCellStyle(
   value: unknown,
   cellStyle?: CellStyle,
@@ -115,10 +96,7 @@ export function resolveCellStyle(
   return Object.keys(css).length > 0 ? css : undefined;
 }
 
-/**
- * Resolve the full presentation (variant + CSS) for a cell. Returns `undefined`
- * for a plain `text` cell with no styling, so callers can render the value as-is.
- */
+// undefined for a plain text cell with nothing applied, so callers render as-is
 export function resolveCellStyleSpec(
   value: unknown,
   cellStyle?: CellStyle,
@@ -132,7 +110,6 @@ export function resolveCellStyleSpec(
   return { variant, css };
 }
 
-/** Wrap content in a chip (rounded pill) styled with the resolved CSS. */
 export function renderChip(content: ReactNode, css: CSSProperties, key?: string): ReactNode {
   const style: CSSProperties = { ...CHIP_BASE_CSS, ...css };
   if (!style.backgroundColor) style.backgroundColor = CHIP_DEFAULT_BG;

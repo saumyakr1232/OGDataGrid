@@ -38,8 +38,7 @@ export function GroupByMenu<T>({ table }: { table: Table<T> }) {
             </MenuItem>
           );
         })}
-        {/* An array (not a Fragment) — MUI's Menu clones its children for
-            keyboard nav and warns when handed a Fragment. */}
+        {/* array, not a fragment — Menu can't iterate a fragment child */}
         {grouping.length > 0 && [
           <Divider key="divider" />,
           <MenuItem key="clear" onClick={() => table.resetGrouping(true)} dense>

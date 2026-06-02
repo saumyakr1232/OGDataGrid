@@ -349,8 +349,7 @@ function DataRow<T>({
         // otherwise read as "empty" and lose their custom cell.
         const isEmpty = !!cell.column.accessorFn && (value == null || value === '');
         const spec = resolveCellStyleSpec(value, meta?.cellStyle, meta?.styleRules);
-        // For a chip the resolved CSS lives on the pill, not the cell; for plain
-        // text it styles the cell directly.
+        // a chip carries the css itself, otherwise it goes on the cell
         const isChip = spec?.variant === 'chip';
         const cellStyleCss = isChip ? undefined : spec?.css;
         const content = flexRender(cell.column.columnDef.cell, cell.getContext());

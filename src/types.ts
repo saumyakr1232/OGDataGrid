@@ -42,9 +42,7 @@ export interface DataGridColumnMeta<T = unknown> {
   groupable?: boolean;
   aggregationFn?: AggregationFn;
   aggregatedCell?: (info: { value: unknown; rowCount: number }) => ReactNode;
-  /** Static style applied to every cell of the column. */
   cellStyle?: CellStyle;
-  /** Conditional styles evaluated against the cell value; later matches win. */
   styleRules?: StyleRule[];
 }
 
