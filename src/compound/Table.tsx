@@ -69,12 +69,13 @@ export function DataGridTable<T>() {
   const isEmpty = !loading && rowModel.rows.length === 0;
 
   return (
-    <GridTableContainer ref={scrollerRef}>
-      <MuiTable
-        stickyHeader
-        size="small"
-        sx={{ tableLayout: 'fixed', width: table.getTotalSize() || '100%' }}
-      >
+    <Box sx={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <GridTableContainer ref={scrollerRef}>
+        <MuiTable
+          stickyHeader
+          size="small"
+          sx={{ tableLayout: 'fixed', width: table.getTotalSize() || '100%' }}
+        >
         <StickyHead>
           {table.getHeaderGroups().map((hg) => (
             <TableRow key={hg.id}>
@@ -131,12 +132,13 @@ export function DataGridTable<T>() {
             </TableRow>
           )}
         </TableBody>
-      </MuiTable>
+        </MuiTable>
+      </GridTableContainer>
       {loading && <OverlayBox>{slots?.loadingOverlay ?? <CircularProgress size={28} />}</OverlayBox>}
       {error && (
         <OverlayBox>{slots?.errorOverlay ?? <Typography color="error">{error}</Typography>}</OverlayBox>
       )}
-    </GridTableContainer>
+    </Box>
   );
 }
 
