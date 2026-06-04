@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Button,
   type ButtonProps,
   Chip,
+  CircularProgress,
   IconButton,
   InputAdornment,
   TextField,
@@ -22,9 +23,12 @@ import { DensityMenu } from '../components/DensityMenu';
 import { AdvancedFilterPanel } from '../components/AdvancedFilterPanel';
 import { exportTableToCsv } from '../export/toCsv';
 import type { AdvancedFilterGroup } from '../types';
+import { useDebouncedFilter } from '../hooks/useDebouncedFilter';
 import { useDataGridContext } from './context';
 
 export type DataGridQuickFilterProps = Omit<TextFieldProps, 'value' | 'onChange'>;
+
+const QUICK_FILTER_DEBOUNCE_MS = 500;
 
 export function DataGridQuickFilter({
   placeholder = 'Quick search…',
@@ -34,13 +38,13 @@ export function DataGridQuickFilter({
   ...rest
 }: DataGridQuickFilterProps) {
   const { state, setters } = useDataGridContext();
-  const [local, setLocal] = useState(state.globalFilter);
-  useEffect(() => setLocal(state.globalFilter), [state.globalFilter]);
-  useEffect(() => {
-    const t = setTimeout(() => setters.setGlobalFilter(local), 200);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [local]);
+  // local value keeps typing instant; the global-filter scan is debounced and
+  // committed inside a transition (see useDebouncedFilter).
+  const { value: local, setValue: setLocal, isPending } = useDebouncedFilter(
+    state.globalFilter,
+    setters.setGlobalFilter,
+    QUICK_FILTER_DEBOUNCE_MS,
+  );
 
   return (
     <TextField
@@ -58,9 +62,13 @@ export function DataGridQuickFilter({
         ),
         endAdornment: local ? (
           <InputAdornment position="end">
-            <IconButton size="small" onClick={() => setLocal('')} aria-label="Clear search">
-              <ClearIcon fontSize="small" />
-            </IconButton>
+            {isPending ? (
+              <CircularProgress size={16} aria-label="Filtering" />
+            ) : (
+              <IconButton size="small" onClick={() => setLocal('')} aria-label="Clear search">
+                <ClearIcon fontSize="small" />
+              </IconButton>
+            )}
           </InputAdornment>
         ) : null,
       }}
@@ -75,16 +83,26 @@ export function DataGridFilterToggle({
   ...rest
 }: ButtonProps) {
   const { state, setters } = useDataGridContext();
+  const activeCount = state.columnFilters.length;
   return (
-    <Tooltip title={state.showFilters ? 'Hide column filters' : 'Show column filters'}>
+    <Tooltip
+      title={
+        activeCount > 0
+          ? `${activeCount} column ${activeCount === 1 ? 'filter' : 'filters'} active${state.showFilters ? '' : ' (row hidden)'}`
+          : state.showFilters
+            ? 'Hide column filters'
+            : 'Show column filters'
+      }
+    >
       <Button
         {...rest}
         size={size}
-        variant={state.showFilters ? 'contained' : 'text'}
+        variant={state.showFilters || activeCount > 0 ? 'contained' : 'text'}
         startIcon={<FilterAltIcon />}
         onClick={() => setters.setShowFilters(!state.showFilters)}
       >
         {children}
+        {activeCount > 0 ? ` (${activeCount})` : ''}
       </Button>
     </Tooltip>
   );

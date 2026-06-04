@@ -15,13 +15,13 @@ import {
  * Toolbar layout container. With no children it renders the default set of
  * tools (honouring the `toolbar` prop flags); pass children to compose your own.
  */
-export function DataGridToolbar({ children }: { children?: BoxProps['children'] }) {
+export function DataGridToolbar({ children, ...rest }: BoxProps) {
   const { tools, slots } = useDataGridContext();
 
-  if (children) return <GridToolbar>{children}</GridToolbar>;
+  if (children) return <GridToolbar {...rest}>{children}</GridToolbar>;
 
   return (
-    <GridToolbar>
+    <GridToolbar {...rest}>
       {tools.quickFilter && <DataGridQuickFilter />}
       {tools.columnFilters && <DataGridFilterToggle />}
       {tools.advancedFilter && <DataGridAdvancedFilter />}

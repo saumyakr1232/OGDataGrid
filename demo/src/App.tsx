@@ -145,7 +145,7 @@ function genRows(n: number): Sale[] {
 }
 
 export default function App() {
-  const allRows = useMemo(() => genRows(2500), []);
+  const allRows = useMemo(() => genRows(50000), []);
   const [loading, setLoading] = useState(false);
   const [empty, setEmpty] = useState(false);
   const [lastClick, setLastClick] = useState('');
@@ -199,16 +199,17 @@ export default function App() {
           }}
         >
           <DataGrid.Container height={640}>
-            <DataGrid.Header title="Sales" subtitle="Revenue by region, product and rep" />
-            <DataGrid.Toolbar>
+            <DataGrid.Header title="Sales" sx={{ textAlign: 'center' }} />
+            <DataGrid.Toolbar sx={{ display: 'flex', alignContent: 'center' }}>
               {/* extra props pass straight through to the underlying MUI element */}
               <DataGrid.QuickFilter placeholder="Search sales…" sx={{ minWidth: 260 }} />
+              {/* spacer right after the search pushes every tool to the right edge */}
+              <Box sx={{ flex: 1 }} />
               <DataGrid.FilterToggle />
               <DataGrid.ColumnsButton />
               <DataGrid.GroupByButton />
               <DataGrid.DensityButton />
               <DataGrid.ExportButton color="primary" variant="outlined" />
-              <Box sx={{ flex: 1 }} />
               <CompanyBadge />
               <Button size="small" variant="outlined" onClick={simulateLoad}>
                 Simulate load
@@ -228,7 +229,7 @@ export default function App() {
             Just Provider + Container + Table + Pagination — compact density, fixed 64px rows.
           </Typography>
         </Box>
-        <DataGrid.Provider<Sale>
+        {/* <DataGrid.Provider<Sale>
           columns={columns}
           rows={allRows}
           getRowId={(r) => r.id}
@@ -240,7 +241,7 @@ export default function App() {
             <DataGrid.Table<Sale> />
             <DataGrid.Pagination pageSizeOptions={[5, 10, 20]} />
           </DataGrid.Container>
-        </DataGrid.Provider>
+        </DataGrid.Provider> */}
       </Stack>
     </Container>
   );

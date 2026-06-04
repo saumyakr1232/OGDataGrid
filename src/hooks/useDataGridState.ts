@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import {
   getCoreRowModel,
   getExpandedRowModel,
@@ -128,6 +128,12 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
     merged.aggregationOverrides,
   );
 
+  // Discrete column-filter controls (select, date, …) commit straight to
+  // filter state; wrap that dispatch in a transition so the resulting O(rows)
+  // re-filter is interruptible and can't freeze the control. (Text/number
+  // filters additionally debounce via useDebouncedFilter on the input side.)
+  const [, startColumnFilterTransition] = useTransition();
+
   const setAggregation = (columnId: string, fn: AggregationFn) =>
     setAggregationOverrides((prev) => ({ ...prev, [columnId]: fn }));
 
@@ -180,6 +186,29 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
         ? ' __adv__ '
         : '';
 
+  // Lowercase the query once per render instead of once per row.
+  const quickQuery = globalFilter ? globalFilter.toLowerCase().trim() : '';
+
+  // Precompute a lowercased search blob per row, rebuilt only when `rows`
+  // changes — not on every keystroke. This turns the per-keystroke global
+  // filter from O(rows × cells) of cell/string work into an O(rows) `includes`
+  // scan, which is what keeps the search input from janking on large datasets.
+  // Note: this searches the raw `row.original` field values; columns with a
+  // custom accessorFn/formatted cell are matched on their underlying data.
+  const searchBlobs = useMemo(() => {
+    const map = new WeakMap<object, string>();
+    for (const r of rows) {
+      if (r && typeof r === 'object') {
+        let blob = '';
+        for (const v of Object.values(r)) {
+          if (v != null) blob += String(v).toLowerCase() + ' ';
+        }
+        map.set(r as object, blob);
+      }
+    }
+    return map;
+  }, [rows]);
+
   // TanStack caches aggregated values and won't recompute them on an aggregationFn
   // change alone, so give it a fresh grouping ref to bust that memo.
   const groupingForTable = useMemo(
@@ -202,7 +231,8 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
       columnSizing,
     },
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
+    onColumnFiltersChange: (updater) =>
+      startColumnFilterTransition(() => setColumnFilters(updater)),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     onPaginationChange: setPagination,
@@ -228,12 +258,9 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
     globalFilterFn: (row, _columnId, _filterValue) => {
       const adv = advancedFilter;
       if (adv && !evalGroup(adv, row)) return false;
-      const q = String(globalFilter || '').toLowerCase().trim();
-      if (!q) return true;
-      return row.getAllCells().some((c) => {
-        const v = c.getValue();
-        return v != null && String(v).toLowerCase().includes(q);
-      });
+      if (!quickQuery) return true;
+      const blob = searchBlobs.get(row.original as object);
+      return blob != null ? blob.includes(quickQuery) : false;
     },
   });
 

@@ -1,5 +1,6 @@
 import { Box, IconButton, TableSortLabel, Tooltip } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import { useState, type ReactElement } from 'react';
 import { flexRender, type Header } from '@tanstack/react-table';
 import type { AggregationFn, DataGridColumnMeta } from '../types';
@@ -52,6 +53,15 @@ export function HeaderCellContent<T>({
       <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {wrapped}
       </Box>
+      {col.getIsFiltered() && (
+        <Tooltip title="Filter active on this column">
+          <FilterAltIcon
+            color="primary"
+            sx={{ fontSize: 14, flexShrink: 0 }}
+            aria-label={`Filter active on ${col.id}`}
+          />
+        </Tooltip>
+      )}
       <IconButton
         size="small"
         aria-label={`Column actions for ${col.id}`}

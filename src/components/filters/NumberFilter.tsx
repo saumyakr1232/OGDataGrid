@@ -1,15 +1,21 @@
 import { Box, TextField } from '@mui/material';
 import type { Column } from '@tanstack/react-table';
+import { useDebouncedFilter } from '../../hooks/useDebouncedFilter';
 
 type Range = [number | '', number | ''];
 
+// Stable empty reference so useDebouncedFilter's external-sync comparison
+// doesn't see a brand-new array every render when no filter is set.
+const EMPTY_RANGE: Range = ['', ''];
+
 export function NumberFilter<T>({ column }: { column: Column<T, unknown> }) {
-  const raw = (column.getFilterValue() as Range) ?? ['', ''];
-  const [min, max] = raw;
-  const update = (next: Range) => {
-    const isEmpty = next[0] === '' && next[1] === '';
-    column.setFilterValue(isEmpty ? undefined : next);
-  };
+  const committed = (column.getFilterValue() as Range) ?? EMPTY_RANGE;
+  // local value keeps typing instant; the per-row re-filter is debounced and
+  // committed inside a transition (see useDebouncedFilter).
+  const { value, setValue } = useDebouncedFilter<Range>(committed, (next) =>
+    column.setFilterValue(next[0] === '' && next[1] === '' ? undefined : next),
+  );
+  const [min, max] = value;
   return (
     <Box sx={{ display: 'flex', gap: 0.5 }}>
       <TextField
@@ -17,7 +23,7 @@ export function NumberFilter<T>({ column }: { column: Column<T, unknown> }) {
         type="number"
         value={min}
         placeholder="Min"
-        onChange={(e) => update([e.target.value === '' ? '' : Number(e.target.value), max])}
+        onChange={(e) => setValue([e.target.value === '' ? '' : Number(e.target.value), max])}
         inputProps={{ 'aria-label': `Min ${column.id}` }}
       />
       <TextField
@@ -25,7 +31,7 @@ export function NumberFilter<T>({ column }: { column: Column<T, unknown> }) {
         type="number"
         value={max}
         placeholder="Max"
-        onChange={(e) => update([min, e.target.value === '' ? '' : Number(e.target.value)])}
+        onChange={(e) => setValue([min, e.target.value === '' ? '' : Number(e.target.value)])}
         inputProps={{ 'aria-label': `Max ${column.id}` }}
       />
     </Box>
