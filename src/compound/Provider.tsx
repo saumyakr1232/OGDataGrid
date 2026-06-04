@@ -18,6 +18,7 @@ export function DataGridProvider<T>({ children, meta, ...props }: DataGridProvid
     loading: props.loading,
     error: props.error,
     onCellClick: props.onCellClick,
+    rowHeight: props.rowHeight,
     meta,
   };
 

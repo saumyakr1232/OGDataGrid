@@ -1,14 +1,21 @@
+import type { TablePaginationProps } from '@mui/material';
 import { PaginationFooter } from '../components/PaginationFooter';
 import { FooterBar } from '../styled';
 import { useDataGridContext } from './context';
 
-/**
- * Footer bound to the table's pagination state. `pageSizeOptions` is the footer's
- * own UI concern, so it can be set here; whether pagination is on at all (and the
- * initial page size) is a table-engine concern set via the `pagination` prop on
- * the root.
- */
-export function DataGridPagination({ pageSizeOptions }: { pageSizeOptions?: number[] }) {
+type ControlledKeys =
+  | 'count'
+  | 'page'
+  | 'onPageChange'
+  | 'rowsPerPage'
+  | 'onRowsPerPageChange'
+  | 'rowsPerPageOptions';
+
+export type DataGridPaginationProps = Partial<Omit<TablePaginationProps, ControlledKeys>> & {
+  pageSizeOptions?: number[];
+};
+
+export function DataGridPagination({ pageSizeOptions, ...rest }: DataGridPaginationProps) {
   const { table, paginating, paginationOpts } = useDataGridContext();
   if (!paginating) return null;
   return (
@@ -16,6 +23,7 @@ export function DataGridPagination({ pageSizeOptions }: { pageSizeOptions?: numb
       <PaginationFooter
         table={table}
         pageSizeOptions={pageSizeOptions ?? paginationOpts?.pageSizeOptions ?? [10, 25, 50, 100]}
+        {...rest}
       />
     </FooterBar>
   );

@@ -171,12 +171,19 @@ export default function App() {
           </Typography>
         </Box>
 
+        {/*
+          Sizing knobs:
+          - table height → DataGrid.Container `height`
+          - row height preset → `density` ("compact" | "standard" | "comfortable")
+          - exact row height → `rowHeight` (overrides density), see the bare table below
+        */}
         <DataGrid.Provider<Sale>
           columns={columns}
           rows={empty ? [] : allRows}
           loading={loading}
           getRowId={(r) => r.id}
           selection={{ mode: 'multi' }}
+          density="standard"
           initialState={{ showFilters: true, pagination: { pageIndex: 0, pageSize: 25 } }}
           csvFileName="sales.csv"
           meta={{ company: 'Acme Corp' } satisfies GridMeta}
@@ -194,12 +201,13 @@ export default function App() {
           <DataGrid.Container height={640}>
             <DataGrid.Header title="Sales" subtitle="Revenue by region, product and rep" />
             <DataGrid.Toolbar>
-              <DataGrid.QuickFilter />
+              {/* extra props pass straight through to the underlying MUI element */}
+              <DataGrid.QuickFilter placeholder="Search sales…" sx={{ minWidth: 260 }} />
               <DataGrid.FilterToggle />
               <DataGrid.ColumnsButton />
               <DataGrid.GroupByButton />
               <DataGrid.DensityButton />
-              <DataGrid.ExportButton />
+              <DataGrid.ExportButton color="primary" variant="outlined" />
               <Box sx={{ flex: 1 }} />
               <CompanyBadge />
               <Button size="small" variant="outlined" onClick={simulateLoad}>
@@ -217,13 +225,15 @@ export default function App() {
         <Box>
           <Typography variant="h6">Bare table</Typography>
           <Typography variant="body2" color="text.secondary">
-            Just Provider + Container + Table + Pagination — no toolbar.
+            Just Provider + Container + Table + Pagination — compact density, fixed 64px rows.
           </Typography>
         </Box>
         <DataGrid.Provider<Sale>
           columns={columns}
           rows={allRows}
           getRowId={(r) => r.id}
+          density="compact"
+          rowHeight={64}
           pagination={{ pageSize: 10 }}
         >
           <DataGrid.Container height={360}>

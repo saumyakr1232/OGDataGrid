@@ -56,3 +56,44 @@ describe('onCellClick', () => {
     expect(onCellClick).not.toHaveBeenCalled();
   });
 });
+
+describe('rowHeight', () => {
+  it('applies the fixed height to body cells', () => {
+    const { container } = render(
+      <DataGrid.Provider<Person>
+        rows={data}
+        columns={columns}
+        getRowId={(r) => r.id}
+        pagination={false}
+        enableVirtualization={false}
+        rowHeight={72}
+      >
+        <DataGrid.Container>
+          <DataGrid.Table<Person> />
+        </DataGrid.Container>
+      </DataGrid.Provider>,
+    );
+    const cell = container.querySelector('tbody td') as HTMLElement;
+    expect(cell.style.height).toBe('72px');
+  });
+});
+
+describe('prop pass-through', () => {
+  it('forwards props to the QuickFilter input and the export button', () => {
+    const { container, getByLabelText } = render(
+      <DataGrid.Provider<Person> rows={data} columns={columns} getRowId={(r) => r.id} pagination={false} enableVirtualization={false}>
+        <DataGrid.Container>
+          <DataGrid.Toolbar>
+            <DataGrid.QuickFilter placeholder="Find people" inputProps={{ 'aria-label': 'qf' }} />
+            <DataGrid.ExportButton disabled />
+          </DataGrid.Toolbar>
+          <DataGrid.Table<Person> />
+        </DataGrid.Container>
+      </DataGrid.Provider>,
+    );
+    expect(getByLabelText('qf')).toBeTruthy();
+    expect(container.querySelector('input[placeholder="Find people"]')).toBeTruthy();
+    const exportBtn = [...container.querySelectorAll('button')].find((b) => b.textContent === 'Export CSV')!;
+    expect(exportBtn).toHaveProperty('disabled', true);
+  });
+});

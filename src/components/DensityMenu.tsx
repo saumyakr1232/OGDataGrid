@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, ListItemIcon, ListItemText, Menu, MenuItem } from '@mui/material';
+import { Button, type ButtonProps, ListItemIcon, ListItemText, Menu, MenuItem } from '@mui/material';
 import DensitySmallIcon from '@mui/icons-material/DensitySmall';
 import DensityMediumIcon from '@mui/icons-material/DensityMedium';
 import DensityLargeIcon from '@mui/icons-material/DensityLarge';
@@ -14,9 +14,11 @@ const OPTIONS: { value: Density; label: string; icon: React.ReactNode }[] = [
 export function DensityMenu({
   density,
   onChange,
+  buttonProps,
 }: {
   density: Density;
   onChange: (d: Density) => void;
+  buttonProps?: ButtonProps;
 }) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const Current = OPTIONS.find((o) => o.value === density)!;
@@ -24,9 +26,10 @@ export function DensityMenu({
     <>
       <Button
         size="small"
+        variant="text"
+        {...buttonProps}
         startIcon={Current.icon}
         onClick={(e) => setAnchor(e.currentTarget)}
-        variant="text"
       >
         Density
       </Button>

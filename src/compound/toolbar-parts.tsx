@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import {
   Box,
   Button,
+  type ButtonProps,
   Chip,
   IconButton,
   InputAdornment,
   TextField,
+  type TextFieldProps,
   Tooltip,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
@@ -22,7 +24,15 @@ import { exportTableToCsv } from '../export/toCsv';
 import type { AdvancedFilterGroup } from '../types';
 import { useDataGridContext } from './context';
 
-export function DataGridQuickFilter({ placeholder = 'Quick search…' }: { placeholder?: string }) {
+export type DataGridQuickFilterProps = Omit<TextFieldProps, 'value' | 'onChange'>;
+
+export function DataGridQuickFilter({
+  placeholder = 'Quick search…',
+  size = 'small',
+  sx,
+  InputProps,
+  ...rest
+}: DataGridQuickFilterProps) {
   const { state, setters } = useDataGridContext();
   const [local, setLocal] = useState(state.globalFilter);
   useEffect(() => setLocal(state.globalFilter), [state.globalFilter]);
@@ -34,11 +44,13 @@ export function DataGridQuickFilter({ placeholder = 'Quick search…' }: { place
 
   return (
     <TextField
-      size="small"
+      {...rest}
+      size={size}
       placeholder={placeholder}
       value={local}
       onChange={(e) => setLocal(e.target.value)}
       InputProps={{
+        ...InputProps,
         startAdornment: (
           <InputAdornment position="start">
             <SearchIcon fontSize="small" />
@@ -52,35 +64,41 @@ export function DataGridQuickFilter({ placeholder = 'Quick search…' }: { place
           </InputAdornment>
         ) : null,
       }}
-      sx={{ minWidth: 220 }}
+      sx={{ minWidth: 220, ...sx }}
     />
   );
 }
 
-export function DataGridFilterToggle() {
+export function DataGridFilterToggle({
+  size = 'small',
+  children = 'Filters',
+  ...rest
+}: ButtonProps) {
   const { state, setters } = useDataGridContext();
   return (
     <Tooltip title={state.showFilters ? 'Hide column filters' : 'Show column filters'}>
       <Button
-        size="small"
+        {...rest}
+        size={size}
         variant={state.showFilters ? 'contained' : 'text'}
         startIcon={<FilterAltIcon />}
         onClick={() => setters.setShowFilters(!state.showFilters)}
       >
-        Filters
+        {children}
       </Button>
     </Tooltip>
   );
 }
 
-export function DataGridAdvancedFilter() {
+export function DataGridAdvancedFilter({ size = 'small', ...rest }: ButtonProps) {
   const { table, state, setters } = useDataGridContext();
   const [open, setOpen] = useState(false);
   const count = state.advancedFilter ? countRules(state.advancedFilter) : 0;
   return (
     <>
       <Button
-        size="small"
+        {...rest}
+        size={size}
         variant={count > 0 ? 'contained' : 'text'}
         startIcon={<TuneIcon />}
         onClick={() => setOpen(true)}
@@ -98,17 +116,17 @@ export function DataGridAdvancedFilter() {
   );
 }
 
-export function DataGridColumnsButton() {
+export function DataGridColumnsButton(buttonProps: ButtonProps) {
   const { table } = useDataGridContext();
-  return <ColumnsMenu table={table} />;
+  return <ColumnsMenu table={table} buttonProps={buttonProps} />;
 }
 
-export function DataGridGroupByButton() {
+export function DataGridGroupByButton(buttonProps: ButtonProps) {
   const { table } = useDataGridContext();
   const grouping = table.getState().grouping;
   return (
     <>
-      <GroupByMenu table={table} />
+      <GroupByMenu table={table} buttonProps={buttonProps} />
       {grouping.length > 0 && (
         <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
           {grouping.map((g) => (
@@ -125,21 +143,27 @@ export function DataGridGroupByButton() {
   );
 }
 
-export function DataGridDensityButton() {
+export function DataGridDensityButton(buttonProps: ButtonProps) {
   const { state, setters } = useDataGridContext();
-  return <DensityMenu density={state.density} onChange={setters.setDensity} />;
+  return <DensityMenu density={state.density} onChange={setters.setDensity} buttonProps={buttonProps} />;
 }
 
-export function DataGridExportButton() {
+export function DataGridExportButton({
+  size = 'small',
+  variant = 'text',
+  children = 'Export CSV',
+  ...rest
+}: ButtonProps) {
   const { table, csvFileName } = useDataGridContext();
   return (
     <Button
-      size="small"
+      {...rest}
+      size={size}
+      variant={variant}
       startIcon={<FileDownloadIcon />}
       onClick={() => exportTableToCsv(table, csvFileName)}
-      variant="text"
     >
-      Export CSV
+      {children}
     </Button>
   );
 }

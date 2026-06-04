@@ -159,7 +159,10 @@ export interface DataGridProps<T> {
   enableGrouping?: boolean;
   enableVirtualization?: boolean;
 
+  /** Initial row density preset. Overridden by `initialState.density` if set. */
   density?: Density;
+  /** Fixed body row height in px. Overrides the density-derived height. */
+  rowHeight?: number;
   initialState?: Partial<DataGridState>;
   state?: Partial<DataGridState>;
   onStateChange?: (state: DataGridState) => void;

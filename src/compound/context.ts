@@ -8,6 +8,8 @@ export interface DataGridContextValue<T> extends UseDataGridResult<T> {
   loading?: boolean;
   error?: ReactNode;
   onCellClick?: (params: CellClickParams<T>) => void;
+  /** Fixed body row height in px; overrides the density-derived height. */
+  rowHeight?: number;
   /** Arbitrary consumer data, shared with custom parts via useDataGridMeta. */
   meta?: unknown;
 }

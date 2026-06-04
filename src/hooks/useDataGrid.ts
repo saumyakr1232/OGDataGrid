@@ -79,12 +79,13 @@ export function useDataGrid<T>(props: DataGridProps<T>): UseDataGridResult<T> {
 
   const initialState = useMemo(() => {
     const merged = { ...resolvedConfig?.initialState, ...props.initialState };
-    // seed page size from the pagination prop unless initialState already set it
+    // seed page size / density from props unless initialState already set them
     if (paginationOpts?.pageSize != null && !merged.pagination) {
       merged.pagination = { pageIndex: 0, pageSize: paginationOpts.pageSize };
     }
+    if (props.density && !merged.density) merged.density = props.density;
     return merged;
-  }, [resolvedConfig, props.initialState, paginationOpts?.pageSize]);
+  }, [resolvedConfig, props.initialState, paginationOpts?.pageSize, props.density]);
 
   const enrichedColumns = useMemo(() => {
     const out = [...baseColumns];

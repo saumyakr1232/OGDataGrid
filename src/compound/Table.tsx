@@ -44,11 +44,12 @@ export function DataGridTable<T>() {
     paginating,
     enableVirtualization,
     onCellClick,
+    rowHeight: rowHeightProp,
   } = useDataGridContext<T>();
 
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const rowModel = table.getRowModel();
-  const rowHeight = densityToRowHeight[state.density];
+  const rowHeight = rowHeightProp ?? densityToRowHeight[state.density];
   const useVirtual = enableVirtualization && !paginating;
 
   const virtualizer = useVirtualizer({
@@ -117,6 +118,7 @@ export function DataGridTable<T>() {
               density={state.density}
               emptyText={emptyText}
               onCellClick={onCellClick}
+              rowHeight={rowHeightProp}
             />
           ))}
           {paddingBottom > 0 && (
@@ -147,13 +149,18 @@ function DataRow<T>({
   density,
   emptyText,
   onCellClick,
+  rowHeight,
 }: {
   row: Row<T>;
   density: Density;
   emptyText: ReactNode;
   onCellClick?: (params: CellClickParams<T>) => void;
+  rowHeight?: number;
 }) {
   const isAgg = row.getIsGrouped();
+  // explicit rowHeight: fix the cell height and drop vertical padding so the
+  // density preset doesn't push rows past it (content centers via vertical-align)
+  const sizing = rowHeight ? { height: rowHeight, paddingTop: 0, paddingBottom: 0 } : undefined;
   return (
     <BodyRow selected={row.getIsSelected()} aggregated={isAgg}>
       {row.getVisibleCells().map((cell) => {
@@ -165,7 +172,7 @@ function DataRow<T>({
               key={cell.id}
               density={density}
               align={align}
-              style={{ width: cell.column.getSize(), paddingLeft: 8 + row.depth * 16 }}
+              style={{ width: cell.column.getSize(), paddingLeft: 8 + row.depth * 16, ...sizing }}
             >
               <GroupCellInner
                 role="button"
@@ -192,7 +199,7 @@ function DataRow<T>({
                 key={cell.id}
                 density={density}
                 align={align}
-                style={{ width: cell.column.getSize() }}
+                style={{ width: cell.column.getSize(), ...sizing }}
               />
             );
           }
@@ -202,7 +209,7 @@ function DataRow<T>({
               key={cell.id}
               density={density}
               align={align}
-              style={{ width: cell.column.getSize() }}
+              style={{ width: cell.column.getSize(), ...sizing }}
             >
               <em>{flexRender(aggCell, cell.getContext())}</em>
             </BodyCell>
@@ -214,7 +221,7 @@ function DataRow<T>({
               key={cell.id}
               density={density}
               align={align}
-              style={{ width: cell.column.getSize() }}
+              style={{ width: cell.column.getSize(), ...sizing }}
             />
           );
         }
@@ -244,7 +251,7 @@ function DataRow<T>({
                 : undefined
             }
             sx={clickable ? { cursor: 'pointer' } : undefined}
-            style={{ width: cell.column.getSize(), ...(isChip ? undefined : spec?.css) }}
+            style={{ width: cell.column.getSize(), ...sizing, ...(isChip ? undefined : spec?.css) }}
           >
             {isEmpty ? (
               <Box component="span" sx={{ color: 'text.disabled' }}>

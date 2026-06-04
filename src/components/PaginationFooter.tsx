@@ -1,19 +1,18 @@
-import { TablePagination } from '@mui/material';
+import { TablePagination, type TablePaginationProps } from '@mui/material';
 import type { Table } from '@tanstack/react-table';
 
-export function PaginationFooter<T>({
-  table,
-  pageSizeOptions,
-}: {
+type Props<T> = {
   table: Table<T>;
   pageSizeOptions: number[];
-}) {
+} & Partial<Omit<TablePaginationProps, 'count' | 'page' | 'onPageChange' | 'rowsPerPage' | 'onRowsPerPageChange' | 'rowsPerPageOptions'>>;
+
+export function PaginationFooter<T>({ table, pageSizeOptions, ...rest }: Props<T>) {
   const { pageSize, pageIndex } = table.getState().pagination;
-  const total = table.getFilteredRowModel().rows.length;
   return (
     <TablePagination
       component="div"
-      count={total}
+      {...rest}
+      count={table.getRowCount()}
       page={pageIndex}
       onPageChange={(_, p) => table.setPageIndex(p)}
       rowsPerPage={pageSize}

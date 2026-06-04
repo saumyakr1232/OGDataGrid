@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   Button,
+  type ButtonProps,
   Checkbox,
   Divider,
   ListItemText,
@@ -12,7 +13,13 @@ import ViewColumnIcon from '@mui/icons-material/ViewColumn';
 import type { Table } from '@tanstack/react-table';
 import type { DataGridColumnMeta } from '../types';
 
-export function ColumnsMenu<T>({ table }: { table: Table<T> }) {
+export function ColumnsMenu<T>({
+  table,
+  buttonProps,
+}: {
+  table: Table<T>;
+  buttonProps?: ButtonProps;
+}) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [query, setQuery] = useState('');
   const cols = table.getAllLeafColumns().filter((c) => {
@@ -29,9 +36,10 @@ export function ColumnsMenu<T>({ table }: { table: Table<T> }) {
     <>
       <Button
         size="small"
+        variant="text"
+        {...buttonProps}
         startIcon={<ViewColumnIcon />}
         onClick={(e) => setAnchor(e.currentTarget)}
-        variant="text"
       >
         Columns
       </Button>

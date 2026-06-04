@@ -1,10 +1,16 @@
 import { useState } from 'react';
-import { Button, Checkbox, ListItemText, Menu, MenuItem, Divider } from '@mui/material';
+import { Button, type ButtonProps, Checkbox, ListItemText, Menu, MenuItem, Divider } from '@mui/material';
 import GroupWorkIcon from '@mui/icons-material/GroupWork';
 import type { Table } from '@tanstack/react-table';
 import type { DataGridColumnMeta } from '../types';
 
-export function GroupByMenu<T>({ table }: { table: Table<T> }) {
+export function GroupByMenu<T>({
+  table,
+  buttonProps,
+}: {
+  table: Table<T>;
+  buttonProps?: ButtonProps;
+}) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const cols = table.getAllLeafColumns().filter((c) => {
     const meta = c.columnDef.meta as DataGridColumnMeta<T> | undefined;
@@ -16,9 +22,10 @@ export function GroupByMenu<T>({ table }: { table: Table<T> }) {
     <>
       <Button
         size="small"
+        variant="text"
+        {...buttonProps}
         startIcon={<GroupWorkIcon />}
         onClick={(e) => setAnchor(e.currentTarget)}
-        variant="text"
       >
         Group by
         {grouping.length > 0 ? ` (${grouping.length})` : ''}

@@ -1,17 +1,13 @@
-import type { ReactNode } from 'react';
-import type { SxProps, Theme } from '@mui/material';
+import type { BoxProps } from '@mui/material';
 import { GridRoot } from '../styled';
 
-export interface DataGridContainerProps {
-  children: ReactNode;
+export interface DataGridContainerProps extends BoxProps {
   height?: number | string;
-  className?: string;
-  sx?: SxProps<Theme>;
 }
 
-export function DataGridContainer({ children, height = 560, className, sx }: DataGridContainerProps) {
+export function DataGridContainer({ children, height = 560, sx, ...rest }: DataGridContainerProps) {
   return (
-    <GridRoot className={className} sx={{ height, ...sx }}>
+    <GridRoot {...rest} sx={{ height, ...sx }}>
       {children}
     </GridRoot>
   );
