@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   Box,
   Button,
@@ -6,7 +6,9 @@ import {
   Chip,
   CircularProgress,
   IconButton,
+  type IconButtonProps,
   InputAdornment,
+  Menu,
   TextField,
   type TextFieldProps,
   Tooltip,
@@ -16,6 +18,8 @@ import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import TuneIcon from '@mui/icons-material/Tune';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import ClearIcon from '@mui/icons-material/Clear';
+import WrapTextIcon from '@mui/icons-material/WrapText';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 import { ColumnsMenu } from '../components/ColumnsMenu';
 import { GroupByMenu } from '../components/GroupByMenu';
@@ -164,6 +168,88 @@ export function DataGridGroupByButton(buttonProps: ButtonProps) {
 export function DataGridDensityButton(buttonProps: ButtonProps) {
   const { state, setters } = useDataGridContext();
   return <DensityMenu density={state.density} onChange={setters.setDensity} buttonProps={buttonProps} />;
+}
+
+export function DataGridWrapToggle({
+  size = 'small',
+  children = 'Wrap',
+  ...rest
+}: ButtonProps) {
+  const { state, setters } = useDataGridContext();
+  return (
+    <Tooltip title={state.wrapText ? 'Disable cell wrapping' : 'Enable cell wrapping'}>
+      <Button
+        {...rest}
+        size={size}
+        variant={state.wrapText ? 'contained' : 'text'}
+        startIcon={<WrapTextIcon />}
+        onClick={() => setters.setWrapText(!state.wrapText)}
+      >
+        {children}
+      </Button>
+    </Tooltip>
+  );
+}
+
+export interface DataGridOverflowMenuProps {
+  /** Controls to tuck behind the 3-dot button — toolbar parts, buttons, chips… */
+  children?: ReactNode;
+  tooltip?: string;
+  /** Override the trigger glyph (defaults to a vertical 3-dot icon). */
+  icon?: ReactNode;
+  buttonProps?: IconButtonProps;
+}
+
+/**
+ * A 3-dot overflow button that reveals its children in a menu. Children are
+ * stacked vertically and stretched, so the existing toolbar parts (Density,
+ * Wrap, Export, …) drop straight in. Each child closes the menu on click.
+ */
+export function DataGridOverflowMenu({
+  children,
+  tooltip = 'More actions',
+  icon,
+  buttonProps,
+}: DataGridOverflowMenuProps) {
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const close = () => setAnchor(null);
+  return (
+    <>
+      <Tooltip title={tooltip}>
+        <IconButton
+          size="small"
+          aria-label={tooltip}
+          onClick={(e) => setAnchor(e.currentTarget)}
+          {...buttonProps}
+        >
+          {icon ?? <MoreVertIcon />}
+        </IconButton>
+      </Tooltip>
+      <Menu
+        anchorEl={anchor}
+        open={!!anchor}
+        onClose={close}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Box
+          onClick={close}
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'stretch',
+            gap: 0.5,
+            px: 1,
+            py: 0.5,
+            minWidth: 180,
+            '& > *': { justifyContent: 'flex-start' },
+          }}
+        >
+          {children}
+        </Box>
+      </Menu>
+    </>
+  );
 }
 
 export function DataGridExportButton({

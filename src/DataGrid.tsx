@@ -2,6 +2,7 @@ import { DataGridProvider } from './compound/Provider';
 import { DataGridContainer } from './compound/Container';
 import { DataGridHeader } from './compound/Header';
 import { DataGridToolbar } from './compound/Toolbar';
+import { DataGridResponsiveToolbar } from './compound/ResponsiveToolbar';
 import { DataGridTable } from './compound/Table';
 import { DataGridPagination } from './compound/Pagination';
 import {
@@ -11,7 +12,9 @@ import {
   DataGridExportButton,
   DataGridFilterToggle,
   DataGridGroupByButton,
+  DataGridOverflowMenu,
   DataGridQuickFilter,
+  DataGridWrapToggle,
 } from './compound/toolbar-parts';
 
 /**
@@ -23,6 +26,7 @@ export const DataGrid = {
   Container: DataGridContainer,
   Header: DataGridHeader,
   Toolbar: DataGridToolbar,
+  ResponsiveToolbar: DataGridResponsiveToolbar,
   Table: DataGridTable,
   Pagination: DataGridPagination,
   QuickFilter: DataGridQuickFilter,
@@ -31,5 +35,7 @@ export const DataGrid = {
   ColumnsButton: DataGridColumnsButton,
   GroupByButton: DataGridGroupByButton,
   DensityButton: DataGridDensityButton,
+  WrapToggle: DataGridWrapToggle,
   ExportButton: DataGridExportButton,
+  OverflowMenu: DataGridOverflowMenu,
 };

@@ -53,6 +53,7 @@ const defaultState: DataGridState = {
   columnSizing: {},
   showFilters: false,
   density: 'standard',
+  wrapText: false,
   aggregationOverrides: {},
 };
 
@@ -124,6 +125,7 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
   const [columnSizing, setColumnSizing] = useState<Record<string, number>>(merged.columnSizing);
   const [showFilters, setShowFilters] = useState(merged.showFilters);
   const [density, setDensity] = useState(merged.density);
+  const [wrapText, setWrapText] = useState(merged.wrapText);
   const [aggregationOverrides, setAggregationOverrides] = useState<Record<string, AggregationFn>>(
     merged.aggregationOverrides,
   );
@@ -150,6 +152,7 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
     columnSizing,
     showFilters,
     density,
+    wrapText,
     aggregationOverrides,
   };
 
@@ -286,6 +289,7 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
       setColumnSizing,
       setShowFilters,
       setDensity,
+      setWrapText,
       setAggregationOverrides,
       setAggregation,
     },

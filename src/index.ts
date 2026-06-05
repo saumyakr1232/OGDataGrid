@@ -11,6 +11,8 @@ export { DataGridContainer } from './compound/Container';
 export type { DataGridContainerProps } from './compound/Container';
 export { DataGridHeader } from './compound/Header';
 export { DataGridToolbar } from './compound/Toolbar';
+export { DataGridResponsiveToolbar } from './compound/ResponsiveToolbar';
+export type { DataGridResponsiveToolbarProps } from './compound/ResponsiveToolbar';
 export { DataGridTable } from './compound/Table';
 export { DataGridPagination } from './compound/Pagination';
 export {
@@ -20,8 +22,11 @@ export {
   DataGridColumnsButton,
   DataGridGroupByButton,
   DataGridDensityButton,
+  DataGridWrapToggle,
   DataGridExportButton,
+  DataGridOverflowMenu,
 } from './compound/toolbar-parts';
+export type { DataGridOverflowMenuProps } from './compound/toolbar-parts';
 
 export type {
   DataGridProps,

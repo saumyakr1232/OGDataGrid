@@ -75,7 +75,21 @@ export function DataGridTable<T>() {
         <MuiTable
           stickyHeader
           size="small"
-          sx={{ tableLayout: 'fixed', width: table.getTotalSize() || '100%' }}
+          sx={{
+            tableLayout: 'fixed',
+            width: table.getTotalSize() || '100%',
+            // Default: keep each body cell on one line and truncate with an
+            // ellipsis. `wrapText` lets the user opt back into wrapping.
+            ...(state.wrapText
+              ? null
+              : {
+                  '& tbody td': {
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  },
+                }),
+          }}
         >
         <StickyHead>
           {table.getHeaderGroups().map((hg) => (

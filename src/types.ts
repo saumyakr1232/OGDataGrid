@@ -125,6 +125,8 @@ export interface DataGridState {
   columnSizing: Record<string, number>;
   showFilters: boolean;
   density: Density;
+  /** When false (default) body cells stay on one line and truncate with an ellipsis. */
+  wrapText: boolean;
   aggregationOverrides: Record<string, AggregationFn>;
 }
 

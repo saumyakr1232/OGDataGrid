@@ -200,16 +200,21 @@ export default function App() {
         >
           <DataGrid.Container height={640}>
             <DataGrid.Header title="Sales" sx={{ textAlign: 'center' }} />
-            <DataGrid.Toolbar sx={{ display: 'flex', alignContent: 'center' }}>
-              {/* extra props pass straight through to the underlying MUI element */}
-              <DataGrid.QuickFilter placeholder="Search sales…" sx={{ minWidth: 260 }} />
-              {/* spacer right after the search pushes every tool to the right edge */}
-              <Box sx={{ flex: 1 }} />
+            {/*
+              ResponsiveToolbar auto-collapses trailing controls into a 3-dot
+              menu as the toolbar narrows (priority order: last collapses first).
+              For unconditional grouping regardless of width, wrap controls in
+              <DataGrid.OverflowMenu> instead.
+            */}
+            <DataGrid.ResponsiveToolbar
+              prefix={<DataGrid.QuickFilter placeholder="Search sales…" sx={{ minWidth: 260 }} />}
+            >
               <DataGrid.FilterToggle />
               <DataGrid.ColumnsButton />
               <DataGrid.GroupByButton />
               <DataGrid.DensityButton />
-              <DataGrid.ExportButton color="primary" variant="outlined" />
+              <DataGrid.WrapToggle />
+              <DataGrid.ExportButton />
               <CompanyBadge />
               <Button size="small" variant="outlined" onClick={simulateLoad}>
                 Simulate load
@@ -217,7 +222,7 @@ export default function App() {
               <Button size="small" variant="outlined" onClick={() => setEmpty((e) => !e)}>
                 {empty ? 'Show rows' : 'Clear rows'}
               </Button>
-            </DataGrid.Toolbar>
+            </DataGrid.ResponsiveToolbar>
             <DataGrid.Table<Sale> />
             <DataGrid.Pagination />
           </DataGrid.Container>
