@@ -136,6 +136,21 @@ export function isDataGridConfig<T>(
   return !!columns && !Array.isArray(columns) && Array.isArray((columns as DataGridConfig).columns);
 }
 
+/**
+ * Parse a cell value to a Date for display. A bare `yyyy-mm-dd` string is built
+ * in local time rather than via `new Date(str)` (which parses date-only strings
+ * as UTC midnight and so renders the previous day in any negative-UTC zone).
+ */
+function parseDateValue(value: unknown): Date | null {
+  if (value instanceof Date) return value;
+  if (typeof value === 'string') {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  }
+  if (typeof value === 'string' || typeof value === 'number') return new Date(value);
+  return null;
+}
+
 /** Format a single cell value per the declarative `format` (returns plain text). */
 export function formatCellValue(
   value: unknown,
@@ -164,12 +179,12 @@ export function formatCellValue(
         ? String(value)
         : new Intl.NumberFormat(locale, { style: 'percent', ...numberOpts }).format(Number(value));
     case 'date': {
-      const d = value instanceof Date ? value : new Date(value as string | number);
-      return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleDateString(locale);
+      const d = parseDateValue(value);
+      return d == null || Number.isNaN(d.getTime()) ? String(value) : d.toLocaleDateString(locale);
     }
     case 'datetime': {
-      const d = value instanceof Date ? value : new Date(value as string | number);
-      return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleString(locale);
+      const d = parseDateValue(value);
+      return d == null || Number.isNaN(d.getTime()) ? String(value) : d.toLocaleString(locale);
     }
     case 'boolean': {
       const [whenTrue, whenFalse] = opts.booleanLabels ?? ['Yes', 'No'];

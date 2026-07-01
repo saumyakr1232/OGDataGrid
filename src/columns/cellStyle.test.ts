@@ -30,6 +30,17 @@ describe('matchStyleCondition', () => {
     expect(matchStyleCondition(null, 'isEmpty')).toBe(true);
     expect(matchStyleCondition('x', 'isNotEmpty')).toBe(true);
   });
+
+  it('does not treat empty/non-numeric values as 0 in numeric comparisons', () => {
+    // a blank or text cell must not satisfy `< 5` / `>= 0` by coercing to 0
+    expect(matchStyleCondition(null, 'lt', 5)).toBe(false);
+    expect(matchStyleCondition('', 'lt', 5)).toBe(false);
+    expect(matchStyleCondition(null, 'gte', 0)).toBe(false);
+    expect(matchStyleCondition('abc', 'gt', 0)).toBe(false);
+    expect(matchStyleCondition('', 'between', 0, 10)).toBe(false);
+    // real numbers still compare normally
+    expect(matchStyleCondition(3, 'lt', 5)).toBe(true);
+  });
 });
 
 describe('cellStyleToCss', () => {

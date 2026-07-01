@@ -1,8 +1,22 @@
 import { createElement, type CSSProperties, type ReactNode } from 'react';
 import type { CellStyle, StyleConditionOp, StyleRule } from './columnConfig';
 
-const asNum = (x: unknown) => (typeof x === 'number' ? x : Number(x));
+// Returns null (rather than 0/NaN) for empty or non-numeric input, so a numeric
+// comparison against a blank cell doesn't silently treat it as 0 and match e.g.
+// `< 5` or `>= 0` on every empty row.
+const asNum = (x: unknown): number | null => {
+  if (x == null || x === '') return null;
+  const n = typeof x === 'number' ? x : Number(x);
+  return Number.isNaN(n) ? null : n;
+};
 const asStr = (x: unknown) => (x == null ? '' : String(x));
+
+/** Numeric comparison that is false unless both operands are real numbers. */
+function numCmp(a: unknown, b: unknown, cmp: (x: number, y: number) => boolean): boolean {
+  const x = asNum(a);
+  const y = asNum(b);
+  return x !== null && y !== null && cmp(x, y);
+}
 
 export function matchStyleCondition(
   value: unknown,
@@ -24,15 +38,15 @@ export function matchStyleCondition(
     case 'endsWith':
       return asStr(value).toLowerCase().endsWith(asStr(ruleValue).toLowerCase());
     case 'gt':
-      return asNum(value) > asNum(ruleValue);
+      return numCmp(value, ruleValue, (x, y) => x > y);
     case 'gte':
-      return asNum(value) >= asNum(ruleValue);
+      return numCmp(value, ruleValue, (x, y) => x >= y);
     case 'lt':
-      return asNum(value) < asNum(ruleValue);
+      return numCmp(value, ruleValue, (x, y) => x < y);
     case 'lte':
-      return asNum(value) <= asNum(ruleValue);
+      return numCmp(value, ruleValue, (x, y) => x <= y);
     case 'between':
-      return asNum(value) >= asNum(ruleValue) && asNum(value) <= asNum(ruleValue2);
+      return numCmp(value, ruleValue, (x, y) => x >= y) && numCmp(value, ruleValue2, (x, y) => x <= y);
     case 'isEmpty':
       return value == null || value === '';
     case 'isNotEmpty':

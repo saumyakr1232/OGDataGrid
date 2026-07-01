@@ -19,7 +19,7 @@ const DEFAULT_SAMPLE_SIZE = 100;
 const DEFAULT_MAX_DISTINCT = 20;
 
 /** Read a column's value out of a row via accessorFn or (possibly dotted) accessorKey. */
-function makeAccessor<T>(column: DataGridColumnDef<T>): ((row: T, index: number) => unknown) | null {
+export function makeAccessor<T>(column: DataGridColumnDef<T>): ((row: T, index: number) => unknown) | null {
   const withFn = column as { accessorFn?: (row: T, index: number) => unknown };
   if (typeof withFn.accessorFn === 'function') return withFn.accessorFn;
 

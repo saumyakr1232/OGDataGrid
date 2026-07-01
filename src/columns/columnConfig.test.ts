@@ -124,12 +124,12 @@ describe('resolveDataGridConfig — merged columns', () => {
   });
 
   it('joins source values, formatting each part by its source column', () => {
-    const merged = byId('regionPrice') as { accessorFn: (r: unknown) => unknown };
+    const merged = byId('regionPrice') as unknown as { accessorFn: (r: unknown) => unknown };
     expect(merged.accessorFn({ region: 'North', unitPrice: 1234.5 })).toBe(`North — ${formatCellValue(1234.5, 'currency', { currency: 'USD' })}`);
   });
 
   it('defaults the separator to a single space', () => {
-    const merged = byId('fullName') as { accessorFn: (r: unknown) => unknown };
+    const merged = byId('fullName') as unknown as { accessorFn: (r: unknown) => unknown };
     expect(merged.accessorFn({ first: 'Ada', last: 'Lovelace' })).toBe('Ada Lovelace');
   });
 });

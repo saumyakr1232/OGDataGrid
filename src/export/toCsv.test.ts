@@ -79,6 +79,39 @@ describe('exportTableToCsv', () => {
     expect(lines).toContain('Plain');
   });
 
+  it('neutralizes formula-leading cells to prevent CSV injection', () => {
+    const columns: DataGridColumnDef<Person>[] = [{ accessorKey: 'name', header: 'Name' }];
+    const table = buildTable<Person>({
+      data: [
+        { name: '=HYPERLINK("http://evil","x")', amount: 0 },
+        { name: '+1+2', amount: 0 },
+        { name: '@SUM(A1:A2)', amount: 0 },
+        { name: "=cmd|'/c calc'!A1", amount: 0 },
+      ],
+      columns,
+    });
+
+    exportTableToCsv(table, 'out.csv');
+
+    // every formula trigger is prefixed with a single quote so the spreadsheet
+    // treats the cell as literal text rather than evaluating it.
+    expect(captured).toContain("'=HYPERLINK");
+    expect(captured).toContain("'+1+2");
+    expect(captured).toContain("'@SUM(A1:A2)");
+    expect(captured).toContain("'=cmd");
+  });
+
+  it('does not prefix numeric values (no false formula trigger on negatives)', () => {
+    const columns: DataGridColumnDef<Person>[] = [
+      { accessorKey: 'amount', header: 'Amount' },
+    ];
+    const table = buildTable<Person>({ data: [{ name: 'x', amount: -5 }], columns });
+
+    exportTableToCsv(table, 'out.csv');
+
+    expect(captured.split('\n')[1]).toBe('-5');
+  });
+
   it('renders empty cells for null/undefined values', () => {
     const columns: DataGridColumnDef<{ a: unknown }>[] = [{ accessorKey: 'a', header: 'A' }];
     const table = buildTable<{ a: unknown }>({

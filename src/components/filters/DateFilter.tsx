@@ -230,9 +230,26 @@ function dayFromDate(d: Date): number {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 }
 
-function rowDay(v: unknown): number | null {
-  if (v == null) return null;
-  const d = v instanceof Date ? v : new Date(v as string | number);
+/**
+ * Reduce an arbitrary row value to a local-midnight day timestamp (or null).
+ *
+ * A bare `yyyy-mm-dd` string — or the date prefix of an ISO datetime string — is
+ * read as that *calendar* day in local time. This is deliberate: `new Date('2024-01-02')`
+ * parses as UTC midnight, which in any negative-UTC zone rolls back to the
+ * previous local day and made "is 2024-01-02" drop the matching row. Comparing on
+ * the written calendar date keeps day-granularity filtering timezone-independent
+ * and consistent with `isoDay` (the date the user typed into the filter).
+ *
+ * Exported so the advanced-filter engine can compare date columns the same way.
+ */
+export function rowDay(v: unknown): number | null {
+  if (v == null || v === '') return null;
+  if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : dayFromDate(v);
+  if (typeof v === 'string') {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v);
+    if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getTime();
+  }
+  const d = new Date(v as string | number);
   return Number.isNaN(d.getTime()) ? null : dayFromDate(d);
 }
 

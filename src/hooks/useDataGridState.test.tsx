@@ -5,6 +5,7 @@ import type {
   AdvancedFilterGroup,
   DataGridColumnDef,
   DataGridProps,
+  DataGridState,
 } from '../types';
 
 type Person = { id: string; name: string; age: number; city: string };
@@ -105,6 +106,16 @@ describe('useDataGridState — global filter', () => {
     const { result } = setup();
     act(() => result.current.setters.setGlobalFilter('la'));
     expect(visibleNames(result)).toEqual(['Bob']);
+  });
+
+  it('does not search hidden columns', () => {
+    const visible = setup();
+    act(() => visible.result.current.setters.setGlobalFilter('NYC'));
+    expect(visibleNames(visible.result)).toEqual(['Alice']);
+
+    const hidden = setup({ initialState: { columnVisibility: { city: false } } });
+    act(() => hidden.result.current.setters.setGlobalFilter('NYC'));
+    expect(visibleNames(hidden.result)).toEqual([]);
   });
 });
 
@@ -212,6 +223,61 @@ describe('useDataGridState — advanced filter eval', () => {
 
     act(() => result.current.setters.setAdvancedFilter(null));
     expect(visibleNames(result)).toEqual(['Alice', 'Bob', 'Carol', 'Dave']);
+  });
+});
+
+describe('useDataGridState — advanced filter on dates & empty numerics', () => {
+  type Rec = { id: string; name: string; score: number | null; due: string };
+  const recs: Rec[] = [
+    { id: '1', name: 'A', score: 10, due: '2024-01-01' },
+    { id: '2', name: 'B', score: null, due: '2024-06-15' },
+    { id: '3', name: 'C', score: 3, due: '2024-12-31' },
+  ];
+  const recCols: DataGridColumnDef<Rec>[] = [
+    { accessorKey: 'name', header: 'Name' },
+    { accessorKey: 'score', header: 'Score' },
+    { accessorKey: 'due', header: 'Due' },
+  ];
+  // A fresh hook per assertion, as elsewhere: the engine memoizes on the
+  // sentinel global-filter value, so switching between two non-empty filters on
+  // one instance wouldn't recompute.
+  function names(rules: AdvancedFilterGroup['rules'], combinator: 'AND' | 'OR' = 'AND') {
+    const { result } = renderHook(() =>
+      useDataGridState<Rec>({ rows: recs, columns: recCols, getRowId: (r) => r.id }),
+    );
+    act(() => result.current.setters.setAdvancedFilter({ id: 'g', combinator, rules }));
+    return result.current.table.getRowModel().rows.map((r) => r.original.name);
+  }
+
+  it('compares date columns by calendar day (gt / lt / equals / between)', () => {
+    expect(names([{ id: 'r', columnId: 'due', op: 'gt', value: '2024-06-15' }])).toEqual(['C']);
+    expect(names([{ id: 'r', columnId: 'due', op: 'lt', value: '2024-06-15' }])).toEqual(['A']);
+    expect(names([{ id: 'r', columnId: 'due', op: 'equals', value: '2024-06-15' }])).toEqual(['B']);
+    expect(
+      names([{ id: 'r', columnId: 'due', op: 'between', value: '2024-01-01', value2: '2024-06-15' }]),
+    ).toEqual(['A', 'B']);
+  });
+
+  it('does not match empty numeric cells as 0', () => {
+    // `< 5` must not catch the null-score row by coercing null to 0
+    expect(names([{ id: 'r', columnId: 'score', op: 'lt', value: 5 }])).toEqual(['C']);
+    expect(names([{ id: 'r', columnId: 'score', op: 'gte', value: 0 }])).toEqual(['A', 'C']);
+  });
+});
+
+describe('useDataGridState — controlled state', () => {
+  it('applies state updates passed after mount', () => {
+    type StateProps = { state?: Partial<DataGridState> };
+    const { result, rerender } = renderHook(
+      ({ state }: StateProps) =>
+        useDataGridState<Person>({ rows: data, columns, getRowId: (r) => r.id, state }),
+      { initialProps: {} as StateProps },
+    );
+
+    expect(result.current.state.density).toBe('standard');
+
+    rerender({ state: { density: 'compact' } });
+    expect(result.current.state.density).toBe('compact');
   });
 });
 

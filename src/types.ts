@@ -166,6 +166,13 @@ export interface DataGridProps<T> {
   /** Fixed body row height in px. Overrides the density-derived height. */
   rowHeight?: number;
   initialState?: Partial<DataGridState>;
+  /**
+   * Controlled state override. Each provided slice seeds the grid on mount and is
+   * re-applied whenever this prop's reference changes, so a parent can drive state
+   * after mount (e.g. apply a default filter once auth resolves). Pass a new object
+   * to push an update; between updates the grid manages the slice itself. Pair with
+   * `onStateChange` to keep the parent's copy in sync.
+   */
   state?: Partial<DataGridState>;
   onStateChange?: (state: DataGridState) => void;
 
