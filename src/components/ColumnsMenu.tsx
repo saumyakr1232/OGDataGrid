@@ -8,6 +8,7 @@ import {
   Menu,
   MenuItem,
   TextField,
+  Tooltip,
 } from '@mui/material';
 import ViewColumnIcon from '@mui/icons-material/ViewColumn';
 import type { Table } from '@tanstack/react-table';
@@ -16,9 +17,11 @@ import type { DataGridColumnMeta } from '../types';
 export function ColumnsMenu<T>({
   table,
   buttonProps,
+  iconOnly = false,
 }: {
   table: Table<T>;
   buttonProps?: ButtonProps;
+  iconOnly?: boolean;
 }) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [query, setQuery] = useState('');
@@ -32,17 +35,23 @@ export function ColumnsMenu<T>({
       .includes(query.toLowerCase()),
   );
 
+  const button = (
+    <Button
+      size="small"
+      variant="text"
+      {...buttonProps}
+      startIcon={iconOnly ? undefined : <ViewColumnIcon />}
+      onClick={(e) => setAnchor(e.currentTarget)}
+      aria-label="Columns"
+      sx={iconOnly ? { minWidth: 0, px: 1, ...buttonProps?.sx } : buttonProps?.sx}
+    >
+      {iconOnly ? <ViewColumnIcon fontSize="small" /> : 'Columns'}
+    </Button>
+  );
+
   return (
     <>
-      <Button
-        size="small"
-        variant="text"
-        {...buttonProps}
-        startIcon={<ViewColumnIcon />}
-        onClick={(e) => setAnchor(e.currentTarget)}
-      >
-        Columns
-      </Button>
+      {iconOnly ? <Tooltip title="Columns">{button}</Tooltip> : button}
       <Menu anchorEl={anchor} open={!!anchor} onClose={() => setAnchor(null)}>
         <MenuItem disableRipple sx={{ '&:hover': { background: 'transparent' } }}>
           <TextField

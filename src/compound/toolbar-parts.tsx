@@ -29,6 +29,12 @@ export type DataGridQuickFilterProps = Omit<TextFieldProps, 'value' | 'onChange'
 
 const QUICK_FILTER_DEBOUNCE_MS = 500;
 
+// Shrinks a tool button down to just its icon (drops the label's width).
+const ICON_ONLY_SX = { minWidth: 0, px: 1 } as const;
+
+/** Toolbar button props plus a per-part override for the toolbar `iconOnly` config. */
+export type ToolbarButtonProps = ButtonProps & { iconOnly?: boolean };
+
 export function DataGridQuickFilter({
   placeholder = 'Quick search…',
   size = 'small',
@@ -79,9 +85,12 @@ export function DataGridQuickFilter({
 export function DataGridFilterToggle({
   size = 'small',
   children = 'Filters',
+  iconOnly: iconOnlyProp,
+  sx,
   ...rest
-}: ButtonProps) {
-  const { state, setters } = useDataGridContext();
+}: ToolbarButtonProps) {
+  const { state, setters, iconOnly: ctxIconOnly } = useDataGridContext();
+  const iconOnly = iconOnlyProp ?? ctxIconOnly;
   const activeCount = state.columnFilters.length;
   return (
     <Tooltip
@@ -97,42 +106,62 @@ export function DataGridFilterToggle({
         {...rest}
         size={size}
         variant={state.showFilters || activeCount > 0 ? 'contained' : 'text'}
-        startIcon={<FilterAltIcon />}
+        startIcon={iconOnly ? undefined : <FilterAltIcon />}
         onClick={() => setters.setShowFilters(!state.showFilters)}
+        aria-label="Filters"
+        sx={iconOnly ? { ...ICON_ONLY_SX, ...sx } : sx}
       >
-        {children}
-        {activeCount > 0 ? ` (${activeCount})` : ''}
+        {iconOnly ? (
+          <FilterAltIcon fontSize="small" />
+        ) : (
+          <>
+            {children}
+            {activeCount > 0 ? ` (${activeCount})` : ''}
+          </>
+        )}
       </Button>
     </Tooltip>
   );
 }
 
-export function DataGridColumnsButton(buttonProps: ButtonProps) {
-  const { table } = useDataGridContext();
-  return <ColumnsMenu table={table} buttonProps={buttonProps} />;
+export function DataGridColumnsButton({ iconOnly: iconOnlyProp, ...buttonProps }: ToolbarButtonProps) {
+  const { table, iconOnly: ctxIconOnly } = useDataGridContext();
+  return <ColumnsMenu table={table} buttonProps={buttonProps} iconOnly={iconOnlyProp ?? ctxIconOnly} />;
 }
 
-export function DataGridDensityButton(buttonProps: ButtonProps) {
-  const { state, setters } = useDataGridContext();
-  return <DensityMenu density={state.density} onChange={setters.setDensity} buttonProps={buttonProps} />;
+export function DataGridDensityButton({ iconOnly: iconOnlyProp, ...buttonProps }: ToolbarButtonProps) {
+  const { state, setters, iconOnly: ctxIconOnly } = useDataGridContext();
+  return (
+    <DensityMenu
+      density={state.density}
+      onChange={setters.setDensity}
+      buttonProps={buttonProps}
+      iconOnly={iconOnlyProp ?? ctxIconOnly}
+    />
+  );
 }
 
 export function DataGridWrapToggle({
   size = 'small',
   children = 'Wrap',
+  iconOnly: iconOnlyProp,
+  sx,
   ...rest
-}: ButtonProps) {
-  const { state, setters } = useDataGridContext();
+}: ToolbarButtonProps) {
+  const { state, setters, iconOnly: ctxIconOnly } = useDataGridContext();
+  const iconOnly = iconOnlyProp ?? ctxIconOnly;
   return (
     <Tooltip title={state.wrapText ? 'Disable cell wrapping' : 'Enable cell wrapping'}>
       <Button
         {...rest}
         size={size}
         variant={state.wrapText ? 'contained' : 'text'}
-        startIcon={<WrapTextIcon />}
+        startIcon={iconOnly ? undefined : <WrapTextIcon />}
         onClick={() => setters.setWrapText(!state.wrapText)}
+        aria-label="Wrap text"
+        sx={iconOnly ? { ...ICON_ONLY_SX, ...sx } : sx}
       >
-        {children}
+        {iconOnly ? <WrapTextIcon fontSize="small" /> : children}
       </Button>
     </Tooltip>
   );
@@ -203,18 +232,24 @@ export function DataGridExportButton({
   size = 'small',
   variant = 'text',
   children = 'Export CSV',
+  iconOnly: iconOnlyProp,
+  sx,
   ...rest
-}: ButtonProps) {
-  const { table, csvFileName } = useDataGridContext();
-  return (
+}: ToolbarButtonProps) {
+  const { table, csvFileName, iconOnly: ctxIconOnly } = useDataGridContext();
+  const iconOnly = iconOnlyProp ?? ctxIconOnly;
+  const button = (
     <Button
       {...rest}
       size={size}
       variant={variant}
-      startIcon={<FileDownloadIcon />}
+      startIcon={iconOnly ? undefined : <FileDownloadIcon />}
       onClick={() => exportTableToCsv(table, csvFileName)}
+      aria-label="Export CSV"
+      sx={iconOnly ? { ...ICON_ONLY_SX, ...sx } : sx}
     >
-      {children}
+      {iconOnly ? <FileDownloadIcon fontSize="small" /> : children}
     </Button>
   );
+  return iconOnly ? <Tooltip title="Export CSV">{button}</Tooltip> : button;
 }

@@ -22,6 +22,8 @@ export interface UseDataGridResult<T> {
   state: DataGridState;
   setters: ReturnType<typeof useDataGridState<T>>['setters'];
   tools: ResolvedTools;
+  /** When true, toolbar tool buttons render icon-only (label in a tooltip). */
+  iconOnly: boolean;
   paginating: boolean;
   paginationOpts?: { pageSize?: number; pageSizeOptions?: number[] };
   enableVirtualization: boolean;
@@ -54,6 +56,7 @@ export function useDataGrid<T>(props: DataGridProps<T>): UseDataGridResult<T> {
     density: toolbarOpts.density ?? true,
     export: (toolbarOpts.export ?? true) && enableCsvExport,
   };
+  const iconOnly = toolbarOpts.iconOnly ?? false;
 
   const resolvedConfig = useMemo(
     () => (isDataGridConfig<T>(columns) ? resolveDataGridConfig<T>(columns) : null),
@@ -100,6 +103,7 @@ export function useDataGrid<T>(props: DataGridProps<T>): UseDataGridResult<T> {
     state,
     setters,
     tools,
+    iconOnly,
     paginating,
     paginationOpts,
     enableVirtualization,

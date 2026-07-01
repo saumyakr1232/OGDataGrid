@@ -66,6 +66,7 @@ export interface DataGridToolbarOptions {
   columns?: boolean;
   density?: boolean;
   export?: boolean;
+  iconOnly?: boolean;
 }
 
 export interface DataGridState {

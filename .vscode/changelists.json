@@ -3,12 +3,11 @@
     {
       "name": "Default",
       "files": [
-        "demo/src/App.tsx",
-        ".vscode/changelists.json",
         "src/compound/toolbar-parts.tsx",
-        "src/hooks/useDataGridState.ts",
-        "src/components/HeaderCellContent.tsx",
-        "src/compound/Toolbar.tsx"
+        "src/components/ColumnsMenu.tsx",
+        "src/components/DensityMenu.tsx",
+        "src/hooks/useDataGrid.ts",
+        "src/types.ts"
       ]
     }
   ],

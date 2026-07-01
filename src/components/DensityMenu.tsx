@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, type ButtonProps, ListItemIcon, ListItemText, Menu, MenuItem } from '@mui/material';
+import { Button, type ButtonProps, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from '@mui/material';
 import DensitySmallIcon from '@mui/icons-material/DensitySmall';
 import DensityMediumIcon from '@mui/icons-material/DensityMedium';
 import DensityLargeIcon from '@mui/icons-material/DensityLarge';
@@ -15,24 +15,31 @@ export function DensityMenu({
   density,
   onChange,
   buttonProps,
+  iconOnly = false,
 }: {
   density: Density;
   onChange: (d: Density) => void;
   buttonProps?: ButtonProps;
+  iconOnly?: boolean;
 }) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const Current = OPTIONS.find((o) => o.value === density)!;
+  const button = (
+    <Button
+      size="small"
+      variant="text"
+      {...buttonProps}
+      startIcon={iconOnly ? undefined : Current.icon}
+      onClick={(e) => setAnchor(e.currentTarget)}
+      aria-label="Density"
+      sx={iconOnly ? { minWidth: 0, px: 1, ...buttonProps?.sx } : buttonProps?.sx}
+    >
+      {iconOnly ? Current.icon : 'Density'}
+    </Button>
+  );
   return (
     <>
-      <Button
-        size="small"
-        variant="text"
-        {...buttonProps}
-        startIcon={Current.icon}
-        onClick={(e) => setAnchor(e.currentTarget)}
-      >
-        Density
-      </Button>
+      {iconOnly ? <Tooltip title={`Density: ${Current.label}`}>{button}</Tooltip> : button}
       <Menu anchorEl={anchor} open={!!anchor} onClose={() => setAnchor(null)}>
         {OPTIONS.map((o) => (
           <MenuItem
