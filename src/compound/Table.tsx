@@ -8,8 +8,6 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import { flexRender, type Row } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 
@@ -22,7 +20,6 @@ import {
   BodyCell,
   BodyRow,
   GridTableContainer,
-  GroupCellInner,
   HeaderCell,
   OverlayBox,
   StickyHead,
@@ -35,7 +32,6 @@ export function DataGridTable<T>() {
   const {
     table,
     state,
-    setters,
     tools,
     slots,
     emptyText,
@@ -104,12 +100,7 @@ export function DataGridTable<T>() {
                   {header.isPlaceholder ? null : header.id === SELECTION_COL_ID ? (
                     flexRender(header.column.columnDef.header, header.getContext())
                   ) : (
-                    <HeaderCellContent
-                      header={header}
-                      groupingActive={state.grouping.length > 0}
-                      currentAggregation={state.aggregationOverrides[header.column.id]}
-                      onSetAggregation={setters.setAggregation}
-                    />
+                    <HeaderCellContent header={header} />
                   )}
                 </HeaderCell>
               ))}
@@ -171,74 +162,14 @@ function DataRow<T>({
   onCellClick?: (params: CellClickParams<T>) => void;
   rowHeight?: number;
 }) {
-  const isAgg = row.getIsGrouped();
   // explicit rowHeight: fix the cell height and drop vertical padding so the
   // density preset doesn't push rows past it (content centers via vertical-align)
   const sizing = rowHeight ? { height: rowHeight, paddingTop: 0, paddingBottom: 0 } : undefined;
   return (
-    <BodyRow selected={row.getIsSelected()} aggregated={isAgg}>
+    <BodyRow selected={row.getIsSelected()}>
       {row.getVisibleCells().map((cell) => {
         const meta = cell.column.columnDef.meta as DataGridColumnMeta<T> | undefined;
         const align = meta?.align;
-        if (cell.getIsGrouped()) {
-          return (
-            <BodyCell
-              key={cell.id}
-              density={density}
-              align={align}
-              style={{ width: cell.column.getSize(), paddingLeft: 8 + row.depth * 16, ...sizing }}
-            >
-              <GroupCellInner
-                role="button"
-                onClick={row.getToggleExpandedHandler()}
-                sx={{ cursor: 'pointer' }}
-              >
-                {row.getIsExpanded() ? (
-                  <KeyboardArrowDownIcon fontSize="small" />
-                ) : (
-                  <KeyboardArrowRightIcon fontSize="small" />
-                )}
-                <strong>{flexRender(cell.column.columnDef.cell, cell.getContext())}</strong>
-                <Box component="span" sx={{ ml: 0.5, color: 'text.secondary' }}>
-                  ({row.subRows.length})
-                </Box>
-              </GroupCellInner>
-            </BodyCell>
-          );
-        }
-        if (cell.getIsAggregated()) {
-          if (!meta?.aggregationFn) {
-            return (
-              <BodyCell
-                key={cell.id}
-                density={density}
-                align={align}
-                style={{ width: cell.column.getSize(), ...sizing }}
-              />
-            );
-          }
-          const aggCell = cell.column.columnDef.aggregatedCell ?? cell.column.columnDef.cell;
-          return (
-            <BodyCell
-              key={cell.id}
-              density={density}
-              align={align}
-              style={{ width: cell.column.getSize(), ...sizing }}
-            >
-              <em>{flexRender(aggCell, cell.getContext())}</em>
-            </BodyCell>
-          );
-        }
-        if (cell.getIsPlaceholder()) {
-          return (
-            <BodyCell
-              key={cell.id}
-              density={density}
-              align={align}
-              style={{ width: cell.column.getSize(), ...sizing }}
-            />
-          );
-        }
         const value = cell.getValue();
         const isEmpty = !!cell.column.accessorFn && (value == null || value === '');
         const spec = resolveCellStyleSpec(value, meta?.cellStyle, meta?.styleRules);

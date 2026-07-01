@@ -2,13 +2,11 @@ import type {
   Cell,
   ColumnDef,
   ColumnFiltersState,
-  GroupingState,
   PaginationState,
   RowSelectionState,
   SortingState,
   Table,
   VisibilityState,
-  ExpandedState,
 } from '@tanstack/react-table';
 import type { MouseEvent, ReactNode } from 'react';
 import type { CellStyle, DataGridConfig, StyleRule } from './columns/columnConfig';
@@ -23,15 +21,6 @@ export type FilterVariant =
   | 'multiSelect'
   | 'boolean';
 
-export type AggregationFn =
-  | 'sum'
-  | 'avg'
-  | 'min'
-  | 'max'
-  | 'count'
-  | 'uniqueCount'
-  | 'unique';
-
 export interface DataGridColumnMeta<T = unknown> {
   filterVariant?: FilterVariant;
   filterOptions?: { label: string; value: unknown }[];
@@ -40,9 +29,6 @@ export interface DataGridColumnMeta<T = unknown> {
   exportValue?: (row: T) => string | number | null | undefined;
   hideable?: boolean;
   resizable?: boolean;
-  groupable?: boolean;
-  aggregationFn?: AggregationFn;
-  aggregatedCell?: (info: { value: unknown; rowCount: number }) => ReactNode;
   cellStyle?: CellStyle;
   styleRules?: StyleRule[];
 }
@@ -77,39 +63,9 @@ export interface DataGridSlots {
 export interface DataGridToolbarOptions {
   quickFilter?: boolean;
   columnFilters?: boolean;
-  advancedFilter?: boolean;
   columns?: boolean;
-  groupBy?: boolean;
   density?: boolean;
   export?: boolean;
-}
-
-export interface AdvancedFilterRule {
-  id: string;
-  columnId: string;
-  op:
-    | 'equals'
-    | 'notEquals'
-    | 'contains'
-    | 'notContains'
-    | 'startsWith'
-    | 'endsWith'
-    | 'gt'
-    | 'gte'
-    | 'lt'
-    | 'lte'
-    | 'between'
-    | 'inList'
-    | 'isEmpty'
-    | 'isNotEmpty';
-  value?: unknown;
-  value2?: unknown;
-}
-
-export interface AdvancedFilterGroup {
-  id: string;
-  combinator: 'AND' | 'OR';
-  rules: (AdvancedFilterRule | AdvancedFilterGroup)[];
 }
 
 export interface DataGridState {
@@ -118,16 +74,12 @@ export interface DataGridState {
   columnVisibility: VisibilityState;
   rowSelection: RowSelectionState;
   pagination: PaginationState;
-  grouping: GroupingState;
-  expanded: ExpandedState;
   globalFilter: string;
-  advancedFilter: AdvancedFilterGroup | null;
   columnSizing: Record<string, number>;
   showFilters: boolean;
   density: Density;
   /** When false (default) body cells stay on one line and truncate with an ellipsis. */
   wrapText: boolean;
-  aggregationOverrides: Record<string, AggregationFn>;
 }
 
 export interface CellClickParams<T> {
@@ -143,8 +95,8 @@ export interface DataGridProps<T> {
   /**
    * Column configuration. Accepts either:
    *  - `DataGridColumnDef<T>[]` — full programmatic column defs (functions ok), or
-   *  - `DataGridConfig` — a JSON-serializable object describing columns, filters,
-   *    group-by and sorting, suitable for storing as a string in a DB and loading
+   *  - `DataGridConfig` — a JSON-serializable object describing columns, filters
+   *    and sorting, suitable for storing as a string in a DB and loading
    *    back (see `resolveDataGridConfig`).
    * Optional — when omitted (or empty), columns are generated from the row data.
    */
@@ -158,7 +110,6 @@ export interface DataGridProps<T> {
   selection?: SelectionOptions;
   enableMultiSort?: boolean;
   enableColumnResizing?: boolean;
-  enableGrouping?: boolean;
   enableVirtualization?: boolean;
 
   /** Initial row density preset. Overridden by `initialState.density` if set. */

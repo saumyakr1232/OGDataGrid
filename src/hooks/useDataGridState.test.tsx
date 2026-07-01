@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { useDataGridState } from './useDataGridState';
 import type {
-  AdvancedFilterGroup,
   DataGridColumnDef,
   DataGridProps,
   DataGridState,
@@ -38,26 +37,12 @@ function visibleNames(result: { current: ReturnType<typeof useDataGridState<Pers
   return result.current.table.getRowModel().rows.map((r) => r.original.name);
 }
 
-// The engine keys its filtered row model on the sentinel global-filter value,
-// which is constant for any non-empty advanced filter. Switching between two
-// non-empty filters on one table instance therefore won't recompute, so each
-// assertion gets a fresh hook (the empty -> sentinel transition does fire).
-function filteredNames(
-  rules: AdvancedFilterGroup['rules'],
-  combinator: 'AND' | 'OR' = 'AND',
-) {
-  const { result } = setup();
-  act(() => result.current.setters.setAdvancedFilter({ id: 'g', combinator, rules }));
-  return visibleNames(result);
-}
-
 describe('useDataGridState — initialization', () => {
   it('falls back to defaults when nothing is provided', () => {
     const { result } = setup();
     expect(result.current.state.density).toBe('standard');
     expect(result.current.state.pagination.pageSize).toBe(25);
     expect(result.current.state.globalFilter).toBe('');
-    expect(result.current.state.advancedFilter).toBeNull();
   });
 
   it('merges initialState over defaults', () => {
@@ -116,152 +101,6 @@ describe('useDataGridState — global filter', () => {
     const hidden = setup({ initialState: { columnVisibility: { city: false } } });
     act(() => hidden.result.current.setters.setGlobalFilter('NYC'));
     expect(visibleNames(hidden.result)).toEqual([]);
-  });
-});
-
-describe('useDataGridState — advanced filter eval', () => {
-  it('equals / notEquals', () => {
-    expect(filteredNames([{ id: 'r', columnId: 'age', op: 'equals', value: 30 }])).toEqual(['Alice']);
-    expect(filteredNames([{ id: 'r', columnId: 'age', op: 'notEquals', value: 30 }])).toEqual([
-      'Bob',
-      'Carol',
-      'Dave',
-    ]);
-  });
-
-  it('contains / startsWith / endsWith', () => {
-    expect(filteredNames([{ id: 'r', columnId: 'name', op: 'contains', value: 'a' }])).toEqual([
-      'Alice',
-      'Carol',
-      'Dave',
-    ]);
-    expect(filteredNames([{ id: 'r', columnId: 'name', op: 'startsWith', value: 'C' }])).toEqual(['Carol']);
-    expect(filteredNames([{ id: 'r', columnId: 'name', op: 'endsWith', value: 'e' }])).toEqual([
-      'Alice',
-      'Dave',
-    ]);
-  });
-
-  it('numeric comparators gt / lt / between', () => {
-    expect(filteredNames([{ id: 'r', columnId: 'age', op: 'gt', value: 25 }])).toEqual(['Alice', 'Carol']);
-    expect(filteredNames([{ id: 'r', columnId: 'age', op: 'lt', value: 25 }])).toEqual(['Dave']);
-    expect(
-      filteredNames([{ id: 'r', columnId: 'age', op: 'between', value: 20, value2: 30 }]),
-    ).toEqual(['Alice', 'Bob', 'Dave']);
-  });
-
-  it('isEmpty / isNotEmpty', () => {
-    expect(filteredNames([{ id: 'r', columnId: 'city', op: 'isEmpty' }])).toEqual(['Carol']);
-    expect(filteredNames([{ id: 'r', columnId: 'city', op: 'isNotEmpty' }])).toEqual([
-      'Alice',
-      'Bob',
-      'Dave',
-    ]);
-  });
-
-  it('inList', () => {
-    expect(
-      filteredNames([{ id: 'r', columnId: 'city', op: 'inList', value: ['NYC', 'SF'] }]),
-    ).toEqual(['Alice', 'Dave']);
-  });
-
-  it('combines rules with AND', () => {
-    expect(
-      filteredNames(
-        [
-          { id: 'r1', columnId: 'age', op: 'gt', value: 22 },
-          { id: 'r2', columnId: 'name', op: 'contains', value: 'a' },
-        ],
-        'AND',
-      ),
-    ).toEqual(['Alice', 'Carol']);
-  });
-
-  it('combines rules with OR', () => {
-    expect(
-      filteredNames(
-        [
-          { id: 'r1', columnId: 'age', op: 'lt', value: 21 },
-          { id: 'r2', columnId: 'city', op: 'equals', value: 'NYC' },
-        ],
-        'OR',
-      ),
-    ).toEqual(['Alice', 'Dave']);
-  });
-
-  it('evaluates nested groups', () => {
-    const { result } = setup();
-    const nested: AdvancedFilterGroup = {
-      id: 'outer',
-      combinator: 'AND',
-      rules: [
-        { id: 'r1', columnId: 'age', op: 'gte', value: 25 },
-        {
-          id: 'inner',
-          combinator: 'OR',
-          rules: [
-            { id: 'r2', columnId: 'city', op: 'equals', value: 'NYC' },
-            { id: 'r3', columnId: 'city', op: 'isEmpty' },
-          ],
-        },
-      ],
-    };
-    act(() => result.current.setters.setAdvancedFilter(nested));
-    expect(visibleNames(result)).toEqual(['Alice', 'Carol']);
-  });
-
-  it('clearing the advanced filter restores all rows', () => {
-    const { result } = setup();
-    act(() =>
-      result.current.setters.setAdvancedFilter({
-        id: 'g',
-        combinator: 'AND',
-        rules: [{ id: 'r', columnId: 'age', op: 'equals', value: 30 }],
-      }),
-    );
-    expect(visibleNames(result)).toEqual(['Alice']);
-
-    act(() => result.current.setters.setAdvancedFilter(null));
-    expect(visibleNames(result)).toEqual(['Alice', 'Bob', 'Carol', 'Dave']);
-  });
-});
-
-describe('useDataGridState — advanced filter on dates & empty numerics', () => {
-  type Rec = { id: string; name: string; score: number | null; due: string };
-  const recs: Rec[] = [
-    { id: '1', name: 'A', score: 10, due: '2024-01-01' },
-    { id: '2', name: 'B', score: null, due: '2024-06-15' },
-    { id: '3', name: 'C', score: 3, due: '2024-12-31' },
-  ];
-  const recCols: DataGridColumnDef<Rec>[] = [
-    { accessorKey: 'name', header: 'Name' },
-    { accessorKey: 'score', header: 'Score' },
-    { accessorKey: 'due', header: 'Due' },
-  ];
-  // A fresh hook per assertion, as elsewhere: the engine memoizes on the
-  // sentinel global-filter value, so switching between two non-empty filters on
-  // one instance wouldn't recompute.
-  function names(rules: AdvancedFilterGroup['rules'], combinator: 'AND' | 'OR' = 'AND') {
-    const { result } = renderHook(() =>
-      useDataGridState<Rec>({ rows: recs, columns: recCols, getRowId: (r) => r.id }),
-    );
-    act(() => result.current.setters.setAdvancedFilter({ id: 'g', combinator, rules }));
-    return result.current.table.getRowModel().rows.map((r) => r.original.name);
-  }
-
-  it('compares date columns by calendar day (gt / lt / equals / between)', () => {
-    expect(names([{ id: 'r', columnId: 'due', op: 'gt', value: '2024-06-15' }])).toEqual(['C']);
-    expect(names([{ id: 'r', columnId: 'due', op: 'lt', value: '2024-06-15' }])).toEqual(['A']);
-    expect(names([{ id: 'r', columnId: 'due', op: 'equals', value: '2024-06-15' }])).toEqual(['B']);
-    expect(
-      names([{ id: 'r', columnId: 'due', op: 'between', value: '2024-01-01', value2: '2024-06-15' }]),
-    ).toEqual(['A', 'B']);
-  });
-
-  it('does not match empty numeric cells as 0', () => {
-    // `< 5` must not catch the null-score row by coercing null to 0
-    expect(names([{ id: 'r', columnId: 'score', op: 'lt', value: 5 }])).toEqual(['C']);
-    expect(names([{ id: 'r', columnId: 'score', op: 'gte', value: 0 }])).toEqual(['A', 'C']);
   });
 });
 

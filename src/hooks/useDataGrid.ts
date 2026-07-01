@@ -12,9 +12,7 @@ export const SELECTION_COL_ID = '__select__';
 export interface ResolvedTools {
   quickFilter: boolean;
   columnFilters: boolean;
-  advancedFilter: boolean;
   columns: boolean;
-  groupBy: boolean;
   density: boolean;
   export: boolean;
 }
@@ -42,7 +40,6 @@ export function useDataGrid<T>(props: DataGridProps<T>): UseDataGridResult<T> {
     selection,
     pagination = { mode: 'client', pageSize: 25, pageSizeOptions: [10, 25, 50, 100] },
     enableColumnResizing = true,
-    enableGrouping = true,
     enableVirtualization = true,
     enableCsvExport = true,
     csvFileName = 'export.csv',
@@ -53,9 +50,7 @@ export function useDataGrid<T>(props: DataGridProps<T>): UseDataGridResult<T> {
   const tools: ResolvedTools = {
     quickFilter: toolbarOpts.quickFilter ?? true,
     columnFilters: toolbarOpts.columnFilters ?? true,
-    advancedFilter: toolbarOpts.advancedFilter ?? true,
     columns: toolbarOpts.columns ?? true,
-    groupBy: (toolbarOpts.groupBy ?? true) && enableGrouping,
     density: toolbarOpts.density ?? true,
     export: (toolbarOpts.export ?? true) && enableCsvExport,
   };
@@ -98,7 +93,6 @@ export function useDataGrid<T>(props: DataGridProps<T>): UseDataGridResult<T> {
     columns: enrichedColumns,
     initialState,
     enableColumnResizing,
-    enableGrouping,
   });
 
   return {

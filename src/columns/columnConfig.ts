@@ -1,7 +1,6 @@
 import { createElement, type ReactNode } from 'react';
 import { renderChip, resolveCellStyleSpec } from './cellStyle';
 import type {
-  AggregationFn,
   DataGridColumnDef,
   DataGridColumnMeta,
   DataGridState,
@@ -102,10 +101,6 @@ export interface ColumnConfig {
   filter?: ColumnFilterConfig | false;
   /** `false` disables sorting on this column. */
   sortable?: boolean;
-  /** Allow grouping by this column. */
-  groupable?: boolean;
-  /** Aggregation used when rows are grouped. */
-  aggregation?: AggregationFn;
   /** How to render the cell value. */
   format?: ColumnFormat;
   formatOptions?: ColumnFormatOptions;
@@ -123,8 +118,6 @@ export interface ColumnSortConfig {
 /** The serializable object accepted by the `columns` prop. */
 export interface DataGridConfig {
   columns: ColumnConfig[];
-  /** Field ids to group by initially. */
-  groupBy?: string[];
   /** Initial multi-sort. */
   sorting?: ColumnSortConfig[];
 }
@@ -245,8 +238,6 @@ function configToColumnDef<T>(
 ): DataGridColumnDef<T> {
   const meta: DataGridColumnMeta<T> = {};
   if (c.align) meta.align = c.align;
-  if (c.groupable) meta.groupable = c.groupable;
-  if (c.aggregation) meta.aggregationFn = c.aggregation;
   if (c.filter && typeof c.filter === 'object') {
     if (c.filter.variant) meta.filterVariant = c.filter.variant;
     if (c.filter.options) meta.filterOptions = c.filter.options;
@@ -285,9 +276,9 @@ function configToColumnDef<T>(
 
 /**
  * Resolve a serializable `DataGridConfig` into runtime column defs plus the
- * initial state it implies (hidden columns → visibility, groupBy → grouping,
- * sorting → sorting). The caller merges this initial state under any
- * consumer-supplied `initialState`.
+ * initial state it implies (hidden columns → visibility, sorting → sorting).
+ * The caller merges this initial state under any consumer-supplied
+ * `initialState`.
  */
 export function resolveDataGridConfig<T>(config: DataGridConfig): {
   columns: DataGridColumnDef<T>[];
@@ -301,9 +292,6 @@ export function resolveDataGridConfig<T>(config: DataGridConfig): {
   const hidden = config.columns.filter((c) => c.hidden).map((c) => c.field);
   if (hidden.length > 0) {
     initialState.columnVisibility = Object.fromEntries(hidden.map((f) => [f, false]));
-  }
-  if (config.groupBy && config.groupBy.length > 0) {
-    initialState.grouping = [...config.groupBy];
   }
   if (config.sorting && config.sorting.length > 0) {
     initialState.sorting = config.sorting.map((s) => ({ id: s.field, desc: !!s.desc }));

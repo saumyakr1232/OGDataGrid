@@ -26,7 +26,6 @@ const SAVED_LAYOUT = `{
     { "field": "date", "header": "Date", "format": "date", "width": 130 },
     {
       "field": "region",
-      "groupable": true,
       "styleRules": [
         { "op": "equals", "value": "North", "style": { "variant": "chip", "backgroundColor": "#e3f2fd", "textColor": "#1565c0", "fontWeight": "bold" } },
         { "op": "equals", "value": "South", "style": { "variant": "chip", "backgroundColor": "#fff3e0", "textColor": "#ef6c00", "fontWeight": "bold" } },
@@ -36,7 +35,6 @@ const SAVED_LAYOUT = `{
     },
     {
       "field": "category",
-      "groupable": true,
       "cellStyle": { "fontStyle": "italic" },
       "styleRules": [
         { "op": "equals", "value": "Hardware", "style": { "backgroundColor": "#e3f2fd" } },
@@ -51,13 +49,12 @@ const SAVED_LAYOUT = `{
       "width": 200,
       "merge": { "fields": ["region", "product"], "separator": " — " }
     },
-    { "field": "rep", "header": "Sales Rep", "groupable": true },
+    { "field": "rep", "header": "Sales Rep" },
     {
       "field": "units",
       "header": "Units",
       "align": "right",
       "format": "number",
-      "aggregation": "sum",
       "styleRules": [
         { "op": "lt", "value": 10, "style": { "textColor": "#9e9e9e", "fontStyle": "italic" } },
         { "op": "gte", "value": 40, "style": { "textColor": "#2e7d32", "fontWeight": "bold" } }
@@ -69,7 +66,6 @@ const SAVED_LAYOUT = `{
       "align": "right",
       "format": "currency",
       "formatOptions": { "currency": "USD" },
-      "aggregation": "avg",
       "styleRules": [
         { "op": "between", "value": 200, "value2": 300, "style": { "backgroundColor": "#fff3e0", "fontWeight": "bold" } }
       ]
@@ -80,7 +76,6 @@ const SAVED_LAYOUT = `{
       "align": "right",
       "format": "currency",
       "formatOptions": { "currency": "USD", "maximumFractionDigits": 0 },
-      "aggregation": "sum",
       "styleRules": [
         { "op": "lt", "value": 2000, "style": { "textColor": "#b00020" } },
         { "op": "gte", "value": 8000, "style": { "backgroundColor": "#e6f4ea", "fontWeight": "bold" } }
@@ -203,7 +198,7 @@ export default function App() {
             {/*
               ResponsiveToolbar auto-collapses trailing controls into a 3-dot
               menu as the toolbar narrows (priority order: last collapses first).
-              For unconditional grouping regardless of width, wrap controls in
+              To force controls behind a menu regardless of width, wrap them in
               <DataGrid.OverflowMenu> instead.
             */}
             <DataGrid.ResponsiveToolbar
@@ -211,7 +206,6 @@ export default function App() {
             >
               <DataGrid.FilterToggle />
               <DataGrid.ColumnsButton />
-              <DataGrid.GroupByButton />
               <DataGrid.DensityButton />
               <DataGrid.WrapToggle />
               <DataGrid.ExportButton />

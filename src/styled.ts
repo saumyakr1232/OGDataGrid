@@ -77,13 +77,9 @@ export const BodyCell = styled(TableCell, {
 }));
 
 export const BodyRow = styled(TableRow, {
-  shouldForwardProp: (p) => p !== 'selected' && p !== 'aggregated',
-})<{ selected?: boolean; aggregated?: boolean }>(({ theme, selected, aggregated }) => ({
-  backgroundColor: aggregated
-    ? theme.palette.action.hover
-    : selected
-      ? theme.palette.action.selected
-      : 'transparent',
+  shouldForwardProp: (p) => p !== 'selected',
+})<{ selected?: boolean }>(({ theme, selected }) => ({
+  backgroundColor: selected ? theme.palette.action.selected : 'transparent',
   '&:hover': {
     backgroundColor: theme.palette.action.hover,
   },
@@ -120,9 +116,3 @@ export const OverlayBox = styled(Box)(({ theme }) => ({
 export const FooterBar = styled(Box)(({ theme }) => ({
   borderTop: `1px solid ${theme.palette.divider}`,
 }));
-
-export const GroupCellInner = styled(Box)({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 4,
-});

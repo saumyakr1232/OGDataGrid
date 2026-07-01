@@ -6,12 +6,10 @@ import { DataGridResponsiveToolbar } from './compound/ResponsiveToolbar';
 import { DataGridTable } from './compound/Table';
 import { DataGridPagination } from './compound/Pagination';
 import {
-  DataGridAdvancedFilter,
   DataGridColumnsButton,
   DataGridDensityButton,
   DataGridExportButton,
   DataGridFilterToggle,
-  DataGridGroupByButton,
   DataGridOverflowMenu,
   DataGridQuickFilter,
   DataGridWrapToggle,
@@ -31,9 +29,7 @@ export const DataGrid = {
   Pagination: DataGridPagination,
   QuickFilter: DataGridQuickFilter,
   FilterToggle: DataGridFilterToggle,
-  AdvancedFilter: DataGridAdvancedFilter,
   ColumnsButton: DataGridColumnsButton,
-  GroupByButton: DataGridGroupByButton,
   DensityButton: DataGridDensityButton,
   WrapToggle: DataGridWrapToggle,
   ExportButton: DataGridExportButton,

@@ -49,12 +49,11 @@ describe('resolveDataGridConfig', () => {
   const config: DataGridConfig = {
     columns: [
       { field: 'id', header: 'ID', width: 80 },
-      { field: 'unitPrice', format: 'currency', align: 'right', aggregation: 'avg' },
-      { field: 'region', filter: { variant: 'select', options: [{ label: 'N', value: 'North' }] }, groupable: true },
+      { field: 'unitPrice', format: 'currency', align: 'right' },
+      { field: 'region', filter: { variant: 'select', options: [{ label: 'N', value: 'North' }] } },
       { field: 'secret', hidden: true },
       { field: 'note', sortable: false, filter: false },
     ],
-    groupBy: ['region'],
     sorting: [{ field: 'unitPrice', desc: true }],
   };
 
@@ -68,14 +67,12 @@ describe('resolveDataGridConfig', () => {
     expect(byField('id').header).toBe('ID');
   });
 
-  it('carries width, align, aggregation and filter into the def/meta', () => {
+  it('carries width, align and filter into the def/meta', () => {
     expect((byField('id') as { size?: number }).size).toBe(80);
     const priced = byField('unitPrice');
     expect(priced.meta?.align).toBe('right');
-    expect(priced.meta?.aggregationFn).toBe('avg');
     const region = byField('region');
     expect(region.meta?.filterVariant).toBe('select');
-    expect(region.meta?.groupable).toBe(true);
   });
 
   it('disables sorting / filtering via flags', () => {
@@ -90,9 +87,8 @@ describe('resolveDataGridConfig', () => {
     );
   });
 
-  it('derives initial state: hidden → visibility, groupBy → grouping, sorting', () => {
+  it('derives initial state: hidden → visibility, sorting', () => {
     expect(initialState.columnVisibility).toEqual({ secret: false });
-    expect(initialState.grouping).toEqual(['region']);
     expect(initialState.sorting).toEqual([{ id: 'unitPrice', desc: true }]);
   });
 

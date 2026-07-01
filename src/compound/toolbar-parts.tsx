@@ -3,7 +3,6 @@ import {
   Box,
   Button,
   type ButtonProps,
-  Chip,
   CircularProgress,
   IconButton,
   type IconButtonProps,
@@ -15,18 +14,14 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
-import TuneIcon from '@mui/icons-material/Tune';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import ClearIcon from '@mui/icons-material/Clear';
 import WrapTextIcon from '@mui/icons-material/WrapText';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 import { ColumnsMenu } from '../components/ColumnsMenu';
-import { GroupByMenu } from '../components/GroupByMenu';
 import { DensityMenu } from '../components/DensityMenu';
-import { AdvancedFilterPanel } from '../components/AdvancedFilterPanel';
 import { exportTableToCsv } from '../export/toCsv';
-import type { AdvancedFilterGroup } from '../types';
 import { useDebouncedFilter } from '../hooks/useDebouncedFilter';
 import { useDataGridContext } from './context';
 
@@ -112,57 +107,9 @@ export function DataGridFilterToggle({
   );
 }
 
-export function DataGridAdvancedFilter({ size = 'small', ...rest }: ButtonProps) {
-  const { table, state, setters } = useDataGridContext();
-  const [open, setOpen] = useState(false);
-  const count = state.advancedFilter ? countRules(state.advancedFilter) : 0;
-  return (
-    <>
-      <Button
-        {...rest}
-        size={size}
-        variant={count > 0 ? 'contained' : 'text'}
-        startIcon={<TuneIcon />}
-        onClick={() => setOpen(true)}
-      >
-        Advanced{count > 0 ? ` (${count})` : ''}
-      </Button>
-      <AdvancedFilterPanel
-        open={open}
-        onClose={() => setOpen(false)}
-        table={table}
-        value={state.advancedFilter}
-        onChange={setters.setAdvancedFilter}
-      />
-    </>
-  );
-}
-
 export function DataGridColumnsButton(buttonProps: ButtonProps) {
   const { table } = useDataGridContext();
   return <ColumnsMenu table={table} buttonProps={buttonProps} />;
-}
-
-export function DataGridGroupByButton(buttonProps: ButtonProps) {
-  const { table } = useDataGridContext();
-  const grouping = table.getState().grouping;
-  return (
-    <>
-      <GroupByMenu table={table} buttonProps={buttonProps} />
-      {grouping.length > 0 && (
-        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
-          {grouping.map((g) => (
-            <Chip
-              key={g}
-              size="small"
-              label={String(table.getColumn(g)?.columnDef.header ?? g)}
-              onDelete={() => table.getColumn(g)?.toggleGrouping()}
-            />
-          ))}
-        </Box>
-      )}
-    </>
-  );
 }
 
 export function DataGridDensityButton(buttonProps: ButtonProps) {
@@ -270,10 +217,4 @@ export function DataGridExportButton({
       {children}
     </Button>
   );
-}
-
-function countRules(g: AdvancedFilterGroup): number {
-  let n = 0;
-  for (const r of g.rules) n += 'combinator' in r ? countRules(r) : 1;
-  return n;
 }

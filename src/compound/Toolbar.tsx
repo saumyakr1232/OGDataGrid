@@ -2,12 +2,10 @@ import { Box, type BoxProps } from '@mui/material';
 import { GridToolbar } from '../styled';
 import { useDataGridContext } from './context';
 import {
-  DataGridAdvancedFilter,
   DataGridColumnsButton,
   DataGridDensityButton,
   DataGridExportButton,
   DataGridFilterToggle,
-  DataGridGroupByButton,
   DataGridQuickFilter,
 } from './toolbar-parts';
 
@@ -24,9 +22,7 @@ export function DataGridToolbar({ children, ...rest }: BoxProps) {
     <GridToolbar {...rest}>
       {tools.quickFilter && <DataGridQuickFilter />}
       {tools.columnFilters && <DataGridFilterToggle />}
-      {tools.advancedFilter && <DataGridAdvancedFilter />}
       {tools.columns && <DataGridColumnsButton />}
-      {tools.groupBy && <DataGridGroupByButton />}
       {tools.density && <DataGridDensityButton />}
       {tools.export && <DataGridExportButton />}
       <Box sx={{ flex: 1 }} />

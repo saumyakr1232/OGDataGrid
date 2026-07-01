@@ -18,9 +18,7 @@ export { DataGridPagination } from './compound/Pagination';
 export {
   DataGridQuickFilter,
   DataGridFilterToggle,
-  DataGridAdvancedFilter,
   DataGridColumnsButton,
-  DataGridGroupByButton,
   DataGridDensityButton,
   DataGridWrapToggle,
   DataGridExportButton,
@@ -38,9 +36,6 @@ export type {
   SelectionOptions,
   Density,
   FilterVariant,
-  AdvancedFilterRule,
-  AdvancedFilterGroup,
-  AggregationFn,
   CellClickParams,
 } from './types';
 export { generateColumns, humanizeKey } from './columns/generateColumns';
