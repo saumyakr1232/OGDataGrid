@@ -41,7 +41,10 @@ export function ColumnsMenu<T>({
       variant="text"
       {...buttonProps}
       startIcon={iconOnly ? undefined : <ViewColumnIcon />}
-      onClick={(e) => setAnchor(e.currentTarget)}
+      onClick={(e) => {
+        e.stopPropagation();
+        setAnchor(e.currentTarget);
+      }}
       aria-label="Columns"
       sx={iconOnly ? { minWidth: 0, px: 1, ...buttonProps?.sx } : buttonProps?.sx}
     >

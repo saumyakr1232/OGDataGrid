@@ -23,7 +23,13 @@ import { ColumnsMenu } from '../components/ColumnsMenu';
 import { DensityMenu } from '../components/DensityMenu';
 import { exportTableToCsv } from '../export/toCsv';
 import { useDebouncedFilter } from '../hooks/useDebouncedFilter';
-import { IconOnlyOverrideContext, useDataGridContext, useToolbarIconOnly } from './context';
+import {
+  IconOnlyOverrideContext,
+  OverflowCloseContext,
+  useDataGridContext,
+  useOverflowClose,
+  useToolbarIconOnly,
+} from './context';
 
 export type DataGridQuickFilterProps = Omit<TextFieldProps, 'value' | 'onChange'>;
 
@@ -130,10 +136,14 @@ export function DataGridColumnsButton({ iconOnly: iconOnlyProp, ...buttonProps }
 export function DataGridDensityButton({ iconOnly: iconOnlyProp, ...buttonProps }: ToolbarButtonProps) {
   const { state, setters } = useDataGridContext();
   const iconOnly = useToolbarIconOnly(iconOnlyProp);
+  const closeOverflow = useOverflowClose();
   return (
     <DensityMenu
       density={state.density}
-      onChange={setters.setDensity}
+      onChange={(d) => {
+        setters.setDensity(d);
+        closeOverflow?.();
+      }}
       buttonProps={buttonProps}
       iconOnly={iconOnly}
     />
@@ -219,7 +229,7 @@ export function DataGridOverflowMenu({
           }}
         >
           <IconOnlyOverrideContext.Provider value={iconOnly}>
-            {children}
+            <OverflowCloseContext.Provider value={close}>{children}</OverflowCloseContext.Provider>
           </IconOnlyOverrideContext.Provider>
         </Box>
       </Menu>
