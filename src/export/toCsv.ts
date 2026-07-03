@@ -1,19 +1,15 @@
 import type { Row, Table } from '@tanstack/react-table';
 import type { DataGridColumnMeta } from '../types';
 
-// Cells whose text begins with one of these are interpreted as a formula by
-// Excel / Google Sheets when the CSV is opened, enabling data exfiltration
-// (=HYPERLINK / =IMPORTXML) or DDE command execution (=cmd|'/c …'!A1).
+// Leading chars that spreadsheets interpret as a formula (CSV injection).
 const FORMULA_LEAD = /^[=+\-@\t\r]/;
 
 function csvEscape(v: unknown): string {
   if (v == null) return '';
-  // Numbers and booleans can never be a formula payload, so never mangle them
-  // (avoids prefixing a legitimate negative number with a quote).
+  // Numbers/booleans can't be formula payloads; don't quote-prefix negatives.
   if (typeof v === 'number' || typeof v === 'boolean') return String(v);
   let s = String(v);
-  // Defuse spreadsheet formula injection by prefixing a single quote, which
-  // forces the cell to be treated as literal text on open.
+  // Quote prefix forces the cell to be read as literal text.
   if (FORMULA_LEAD.test(s)) s = `'${s}`;
   if (/["\n\r,]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;

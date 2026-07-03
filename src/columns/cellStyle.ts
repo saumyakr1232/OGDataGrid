@@ -1,9 +1,7 @@
 import { createElement, type CSSProperties, type ReactNode } from 'react';
 import type { CellStyle, StyleConditionOp, StyleRule } from './columnConfig';
 
-// Returns null (rather than 0/NaN) for empty or non-numeric input, so a numeric
-// comparison against a blank cell doesn't silently treat it as 0 and match e.g.
-// `< 5` or `>= 0` on every empty row.
+// Null (not 0/NaN) for blanks, so numeric rules don't match empty cells.
 const asNum = (x: unknown): number | null => {
   if (x == null || x === '') return null;
   const n = typeof x === 'number' ? x : Number(x);

@@ -4,10 +4,9 @@
       "name": "Default",
       "files": [
         "src/compound/toolbar-parts.tsx",
-        "src/components/ColumnsMenu.tsx",
-        "src/components/DensityMenu.tsx",
-        "src/hooks/useDataGrid.ts",
-        "src/types.ts"
+        "demo/src/App.tsx",
+        "src/compound/context.ts",
+        ".vscode/changelists.json"
       ]
     }
   ],

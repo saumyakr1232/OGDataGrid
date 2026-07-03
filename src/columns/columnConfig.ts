@@ -8,19 +8,9 @@ import type {
 } from '../types';
 import { humanizeKey } from './generateColumns';
 
-/**
- * Serializable, DB-storable column configuration.
- *
- * Unlike `DataGridColumnDef` (which carries functions — cell renderers,
- * accessors, filter fns — and cannot be JSON-stringified), every field here is
- * a primitive, enum, array, or plain object. A whole `DataGridConfig` survives
- * `JSON.stringify` → store → `JSON.parse` → pass back to `<DataGrid columns>`.
- *
- * Cell rendering for non-trivial values is expressed declaratively via `format`
- * (resolved to a built-in formatter at runtime) rather than a function.
- */
+// Serializable column configuration: unlike DataGridColumnDef it carries no
+// functions, so a whole DataGridConfig survives a JSON round-trip.
 
-/** Primitive cell value type — what a filter option may carry, kept serializable. */
 export type SerializableValue = string | number | boolean;
 
 export type ColumnFormat =
@@ -129,11 +119,8 @@ export function isDataGridConfig<T>(
   return !!columns && !Array.isArray(columns) && Array.isArray((columns as DataGridConfig).columns);
 }
 
-/**
- * Parse a cell value to a Date for display. A bare `yyyy-mm-dd` string is built
- * in local time rather than via `new Date(str)` (which parses date-only strings
- * as UTC midnight and so renders the previous day in any negative-UTC zone).
- */
+// Bare yyyy-mm-dd strings are parsed as local time — new Date(str) would
+// treat them as UTC midnight and show the previous day in negative-UTC zones.
 function parseDateValue(value: unknown): Date | null {
   if (value instanceof Date) return value;
   if (typeof value === 'string') {
@@ -144,7 +131,6 @@ function parseDateValue(value: unknown): Date | null {
   return null;
 }
 
-/** Format a single cell value per the declarative `format` (returns plain text). */
 export function formatCellValue(
   value: unknown,
   format: ColumnFormat,
@@ -209,8 +195,8 @@ function mergedCellRenderer<T>(
 ): (info: { row: { original: T } }) => ReactNode {
   const fields = c.merge!.fields;
   const separator = c.merge!.separator ?? ' ';
-  // with its own style the whole cell is styled in DataRow, so just join text here.
-  // otherwise each part carries its source column's style as a span.
+  // If the merged column has its own style, DataRow styles the whole cell;
+  // otherwise each part keeps its source column's style.
   const ownStyling = !!c.cellStyle || (!!c.styleRules && c.styleRules.length > 0);
 
   return ({ row }) => {
@@ -250,7 +236,7 @@ function configToColumnDef<T>(
   };
 
   if (c.merge) {
-    // no row accessor — the joined string drives display, sort, filter and CSV
+    // The joined string drives display, sort, filter, and CSV.
     const fields = c.merge.fields;
     const separator = c.merge.separator ?? ' ';
     def.id = c.field;
@@ -274,12 +260,7 @@ function configToColumnDef<T>(
   return def as unknown as DataGridColumnDef<T>;
 }
 
-/**
- * Resolve a serializable `DataGridConfig` into runtime column defs plus the
- * initial state it implies (hidden columns → visibility, sorting → sorting).
- * The caller merges this initial state under any consumer-supplied
- * `initialState`.
- */
+/** Resolve a serializable config into runtime column defs and the initial state it implies. */
 export function resolveDataGridConfig<T>(config: DataGridConfig): {
   columns: DataGridColumnDef<T>[];
   initialState: Partial<DataGridState>;

@@ -3,28 +3,22 @@ import { Box } from '@mui/material';
 import { GridToolbar } from '../styled';
 import { DataGridOverflowMenu } from './toolbar-parts';
 
-// GridToolbar uses theme.spacing(1) = 8px between items; mirror it here so the
-// measured widths line up with what actually renders.
+// Must match GridToolbar's theme.spacing(1) gap so measured widths line up.
 const GAP_PX = 8;
-// Space reserved for the 3-dot trigger (button + gap) when anything overflows.
+// Room reserved for the 3-dot trigger when anything overflows.
 const OVERFLOW_RESERVE_PX = 48;
 
 export interface DataGridResponsiveToolbarProps {
-  /** Collapsible controls, in priority order — the *last* ones overflow first. */
+  /** Collapsible controls in priority order — the last ones overflow first. */
   children?: ReactNode;
-  /** Pinned content rendered before the collapsible group (e.g. the search box). */
+  /** Pinned content rendered before the collapsible group. */
   prefix?: ReactNode;
   overflowTooltip?: string;
 }
 
 /**
- * A toolbar that automatically moves its trailing children into a 3-dot
- * overflow menu when they don't fit the available width (a "priority+" layout),
- * and brings them back out when there's room again. Order children high→low
- * priority; low-priority ones collapse first.
- *
- * For unconditional grouping regardless of width, use `DataGrid.OverflowMenu`
- * directly instead.
+ * Moves trailing children into a 3-dot overflow menu when they don't fit,
+ * and brings them back when there's room again.
  */
 export function DataGridResponsiveToolbar({
   children,
@@ -42,8 +36,8 @@ export function DataGridResponsiveToolbar({
     if (!container || !measureLayer) return;
 
     const measure = () => {
-      // The hidden layer always renders every item, so widths stay available
-      // even for currently-collapsed ones (needed to expand again on grow).
+      // The hidden layer renders every item, so collapsed ones can still be
+      // measured and brought back when the container grows.
       const widths = [...measureLayer.children].map(
         (el) => (el as HTMLElement).getBoundingClientRect().width,
       );
@@ -67,7 +61,6 @@ export function DataGridResponsiveToolbar({
     ro.observe(container);
     measure();
     return () => ro.disconnect();
-    // Re-run when the set of items changes (count is a cheap proxy).
   }, [items.length]);
 
   const visible = items.slice(0, visibleCount);
@@ -93,7 +86,7 @@ export function DataGridResponsiveToolbar({
           <DataGridOverflowMenu tooltip={overflowTooltip}>{overflow}</DataGridOverflowMenu>
         )}
       </Box>
-      {/* Off-screen measurement layer: never interactive, just sized. */}
+      {/* Off-screen measurement layer */}
       <Box
         ref={measureRef}
         aria-hidden

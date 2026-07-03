@@ -4,14 +4,11 @@ import { useDebouncedFilter } from '../../hooks/useDebouncedFilter';
 
 type Range = [number | '', number | ''];
 
-// Stable empty reference so useDebouncedFilter's external-sync comparison
-// doesn't see a brand-new array every render when no filter is set.
+// Stable reference so the external-sync comparison doesn't see a new array every render.
 const EMPTY_RANGE: Range = ['', ''];
 
 export function NumberFilter<T>({ column }: { column: Column<T, unknown> }) {
   const committed = (column.getFilterValue() as Range) ?? EMPTY_RANGE;
-  // local value keeps typing instant; the per-row re-filter is debounced and
-  // committed inside a transition (see useDebouncedFilter).
   const { value, setValue } = useDebouncedFilter<Range>(committed, (next) =>
     column.setFilterValue(next[0] === '' && next[1] === '' ? undefined : next),
   );

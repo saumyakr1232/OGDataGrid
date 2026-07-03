@@ -17,11 +17,8 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import CloseIcon from '@mui/icons-material/Close';
 import type { Column } from '@tanstack/react-table';
 
-/**
- * A Notion-style date filter: each condition pairs an operator with a date,
- * and up to two conditions can be combined with AND / OR. The popover edits a
- * draft and only commits to the column filter state on "Apply".
- */
+// Notion-style date filter: up to two operator+date conditions combined with
+// AND/OR, edited as a draft and committed on "Apply".
 export type DateOp =
   | 'is'
   | 'before'
@@ -33,7 +30,7 @@ export type DateOp =
 
 export interface DateCondition {
   op: DateOp;
-  /** ISO `yyyy-mm-dd` (from a native date input), or null when not yet set. */
+  /** ISO `yyyy-mm-dd`, or null when not yet set. */
   value: string | null;
 }
 
@@ -111,7 +108,7 @@ export function DateFilter<T>({ column }: { column: Column<T, unknown> }) {
   const [c2, setC2] = useState<DateCondition | null>(null);
 
   const openPopover = (e: React.MouseEvent<HTMLElement>) => {
-    // Seed the draft from whatever is currently applied so re-opening edits it.
+    // Seed the draft from the applied filter so re-opening edits it.
     const a = column.getFilterValue() as DateFilterValue | undefined;
     setC1(a?.c1 ?? { op: 'is', value: null });
     setCombinator(a?.combinator ?? 'AND');
@@ -151,8 +148,7 @@ export function DateFilter<T>({ column }: { column: Column<T, unknown> }) {
         onClick={openPopover}
         startIcon={<FilterListIcon fontSize="small" />}
         sx={{
-          // Match the height of the sibling small outlined inputs (40px) so the
-          // filter row stays visually aligned.
+          // Match the sibling small outlined inputs.
           height: 40,
           justifyContent: 'flex-start',
           textTransform: 'none',
@@ -231,16 +227,10 @@ function dayFromDate(d: Date): number {
 }
 
 /**
- * Reduce an arbitrary row value to a local-midnight day timestamp (or null).
- *
- * A bare `yyyy-mm-dd` string — or the date prefix of an ISO datetime string — is
- * read as that *calendar* day in local time. This is deliberate: `new Date('2024-01-02')`
- * parses as UTC midnight, which in any negative-UTC zone rolls back to the
- * previous local day and made "is 2024-01-02" drop the matching row. Comparing on
- * the written calendar date keeps day-granularity filtering timezone-independent
- * and consistent with `isoDay` (the date the user typed into the filter).
- *
- * Exported so the advanced-filter engine can compare date columns the same way.
+ * Reduce a row value to a local-midnight day timestamp (or null). ISO date
+ * strings are read as local calendar days — `new Date('2024-01-02')` parses as
+ * UTC midnight, which rolls back a day in negative-UTC zones and broke "is"
+ * comparisons.
  */
 export function rowDay(v: unknown): number | null {
   if (v == null || v === '') return null;
@@ -282,10 +272,7 @@ function evalCondition(rowValue: unknown, cond: DateCondition): boolean {
   }
 }
 
-/**
- * Column `filterFn` for the date filter value. The grid auto-wires this for any
- * column declaring `meta.filterVariant: 'date'`, so consumers don't have to.
- */
+/** filterFn auto-wired for columns with `meta.filterVariant: 'date'`. */
 export function dateFilterFn(
   row: { getValue: (id: string) => unknown },
   columnId: string,

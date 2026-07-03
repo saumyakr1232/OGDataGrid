@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { DataGridColumnDef } from '../types';
 
-/** How many rows to scan when discovering keys, so sparse rows don't hide columns. */
+// Scan several rows for keys so sparse rows don't hide columns.
 const KEY_SCAN_LIMIT = 50;
 
 /** "unitPrice" → "Unit Price", "first_name" → "First Name", "id" → "Id". */
@@ -14,7 +14,7 @@ export function humanizeKey(key: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-/** Render an arbitrary cell value as text so React never receives a Date/object child. */
+// Stringify so React never receives a Date/object child.
 function formatValue(v: unknown): ReactNode {
   if (v == null) return '';
   if (v instanceof Date) return v.toLocaleDateString();
@@ -23,7 +23,6 @@ function formatValue(v: unknown): ReactNode {
   return String(v);
 }
 
-/** Union of own keys across a sample of rows, in first-seen order. */
 function collectKeys<T>(rows: T[]): string[] {
   const keys: string[] = [];
   const seen = new Set<string>();
@@ -41,12 +40,7 @@ function collectKeys<T>(rows: T[]): string[] {
   return keys;
 }
 
-/**
- * Build a column per top-level key of the row data, used when the consumer
- * doesn't supply `columns`. Each column carries a string-formatting cell so
- * non-primitive values (Date, objects) render safely; the filter variant is
- * still inferred downstream from the data, exactly as for explicit columns.
- */
+/** Build a column per top-level row key, used when no `columns` are supplied. */
 export function generateColumns<T>(rows: T[]): DataGridColumnDef<T>[] {
   if (!rows || rows.length === 0) return [];
   return collectKeys(rows).map(

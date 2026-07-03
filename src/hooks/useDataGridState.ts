@@ -21,10 +21,7 @@ import { inferColumnFilter, makeAccessor } from '../filters/inferFilterVariant';
 
 const DEFAULT_PAGE_SIZE = 25;
 
-// Default filterFn for each variant, used when a column doesn't supply its own.
-// `'includesString'` and `'equals'` are TanStack built-ins referenced by name.
-// Single `select` stores a scalar value (exact match); only `multiSelect` stores
-// an array, which is what inListFilterFn expects.
+// Fallback filterFn per variant; string values are TanStack built-ins.
 const FILTER_FN_BY_VARIANT: Record<FilterVariant, FilterFn<unknown> | string> = {
   text: 'includesString',
   number: numberRangeFilterFn as unknown as FilterFn<unknown>,
@@ -63,7 +60,7 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
 
   const merged = useMemo<DataGridState>(
     () => ({ ...defaultState, ...initialState, ...controlledState }),
-    // intentionally only depend on initialState/controlledState identity
+    // seed once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
@@ -79,17 +76,10 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
   const [density, setDensity] = useState(merged.density);
   const [wrapText, setWrapText] = useState(merged.wrapText);
 
-  // Discrete column-filter controls (select, date, …) commit straight to
-  // filter state; wrap that dispatch in a transition so the resulting O(rows)
-  // re-filter is interruptible and can't freeze the control. (Text/number
-  // filters additionally debounce via useDebouncedFilter on the input side.)
+  // Keeps filter controls responsive while the O(rows) re-filter runs.
   const [, startColumnFilterTransition] = useTransition();
 
-  // Controlled `state`: apply each provided slice to internal state whenever the
-  // prop reference changes after mount (the initial value is already seeded via
-  // `merged`). Without this the grid ignored post-mount `state` updates entirely
-  // — e.g. a parent applying a row-restricting filter once auth resolves saw
-  // nothing happen. Between parent updates the grid stays interactive.
+  // Sync controlled `state` slices into internal state on post-mount updates.
   const controlledRef = useRef(controlledState);
   useEffect(() => {
     const s = controlledState;
@@ -106,14 +96,9 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
     if (s.showFilters !== undefined) setShowFilters(s.showFilters);
     if (s.density !== undefined) setDensity(s.density);
     if (s.wrapText !== undefined) setWrapText(s.wrapText);
-    // setState fns are stable; we intentionally key only on the prop reference.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [controlledState]);
 
-  // Memoized over its individual slices (all immutable setState values, so
-  // reference equality is exact) — its identity changes only when state really
-  // changes. This avoids the previous per-render `JSON.stringify` diff, which
-  // also dropped Date values from filter state and ran on every resize frame.
   const fullState = useMemo<DataGridState>(
     () => ({
       sorting,
@@ -141,8 +126,7 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
     ],
   );
 
-  // Emit through a ref so a fresh `onStateChange` closure doesn't re-fire when
-  // state is unchanged; the effect runs only when `fullState` identity changes.
+  // Ref keeps a fresh onStateChange closure from re-firing the effect.
   const onStateChangeRef = useRef(onStateChange);
   onStateChangeRef.current = onStateChange;
   useEffect(() => {
@@ -152,15 +136,12 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
   const enableSelection = !!selection;
   const enablePagination = pagination !== false;
 
-  // `columns` is always a resolved def array here — DataGrid converts a
-  // serializable DataGridConfig before calling this hook.
+  // DataGrid resolves any serializable config before calling this hook.
   const columnDefs = Array.isArray(columns) ? columns : [];
   const cols = useMemo(() => attachFilters(columnDefs, rows), [columnDefs, rows]);
 
-  // Accessors for the columns the quick filter is allowed to search: visible and
-  // data-bearing. Restricting to visible columns stops a hidden column (e.g. a
-  // sensitive value the user can't see) from being oracled one substring at a
-  // time through the search box.
+  // Quick filter only searches visible columns, so hidden (possibly
+  // sensitive) values can't be probed through the search box.
   const searchAccessors = useMemo(() => {
     const acc: ((row: T, index: number) => unknown)[] = [];
     for (const col of columnDefs) {
@@ -172,15 +153,10 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
     return acc;
   }, [columnDefs, columnVisibility]);
 
-  // Lowercase the query once per render instead of once per row.
   const quickQuery = globalFilter ? globalFilter.toLowerCase().trim() : '';
 
-  // Precompute a lowercased search blob per row from the searchable columns,
-  // rebuilt only when `rows` or column visibility changes — not on every
-  // keystroke. This turns the per-keystroke global filter from O(rows × cells)
-  // of cell/string work into an O(rows) `includes` scan, which keeps the search
-  // input from janking on large datasets. Columns with a custom
-  // accessorFn/formatted cell are matched on their underlying data.
+  // Precomputed per-row search text; rebuilt on data/visibility changes,
+  // not per keystroke, so global filtering stays a cheap `includes` scan.
   const searchBlobs = useMemo(() => {
     const map = new WeakMap<object, string>();
     for (let i = 0; i < rows.length; i++) {
@@ -259,16 +235,8 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
   };
 }
 
-/**
- * Decide which filter UI each column should use and wire a matching `filterFn`.
- *
- * A consumer-supplied `meta.filterVariant` always wins; when it's absent we infer
- * the variant from a *random* sample of the row data (see inferColumnFilter —
- * random rather than head-sampled, so data that already arrives sorted from an
- * endpoint doesn't bias the guess). For an inferred `select` we also derive the
- * option list when the consumer hasn't supplied one. Any column that already
- * declares its own `filterFn` keeps it.
- */
+// Pick each column's filter UI and wire a matching filterFn. An explicit
+// meta.filterVariant wins; otherwise we infer one from the row data.
 function attachFilters<T>(columns: DataGridColumnDef<T>[], rows: T[]): DataGridColumnDef<T>[] {
   return columns.map((c) => {
     const meta = (c.meta ?? {}) as DataGridColumnMeta<T>;
@@ -277,7 +245,7 @@ function attachFilters<T>(columns: DataGridColumnDef<T>[], rows: T[]): DataGridC
 
     if (!variant) {
       const inferred = inferColumnFilter(c, rows);
-      if (!inferred) return c; // display/action column, or no data to learn from
+      if (!inferred) return c;
       variant = inferred.variant;
       if (variant === 'select' && !options) options = inferred.options;
     }

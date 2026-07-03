@@ -31,9 +31,8 @@ export interface UseDataGridResult<T> {
 }
 
 /**
- * Headless core: resolves columns, wires state and derives the presentational
- * flags the UI needs. Use this directly to build a fully custom grid, or let
- * `<DataGrid.Provider>` provide it through context.
+ * Headless core: resolves columns, wires state, and derives the flags the UI
+ * needs. Use directly for a custom grid, or via `<DataGrid.Provider>`.
  */
 export function useDataGrid<T>(props: DataGridProps<T>): UseDataGridResult<T> {
   const {
@@ -77,7 +76,6 @@ export function useDataGrid<T>(props: DataGridProps<T>): UseDataGridResult<T> {
 
   const initialState = useMemo(() => {
     const merged = { ...resolvedConfig?.initialState, ...props.initialState };
-    // seed page size / density from props unless initialState already set them
     if (paginationOpts?.pageSize != null && !merged.pagination) {
       merged.pagination = { pageIndex: 0, pageSize: paginationOpts.pageSize };
     }

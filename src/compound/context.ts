@@ -22,6 +22,19 @@ export function useDataGridContext<T = unknown>(): DataGridContextValue<T> {
   return ctx as DataGridContextValue<T>;
 }
 
+// Lets a subtree (e.g. an overflow dropdown) override the toolbar's icon-only
+// mode; undefined means inherit.
+const IconOnlyOverrideContext = createContext<boolean | undefined>(undefined);
+
+/** Icon-only resolution: explicit prop, then subtree override, then toolbar config. */
+export function useToolbarIconOnly(explicit?: boolean): boolean {
+  const override = useContext(IconOnlyOverrideContext);
+  const ctx = useContext(DataGridContext);
+  return explicit ?? override ?? ctx?.iconOnly ?? false;
+}
+
+export { IconOnlyOverrideContext };
+
 export function useDataGridMeta<TMeta = unknown>(): TMeta | undefined {
   return useDataGridContext().meta as TMeta | undefined;
 }

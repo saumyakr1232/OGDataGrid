@@ -74,8 +74,7 @@ export function DataGridTable<T>() {
           sx={{
             tableLayout: 'fixed',
             width: table.getTotalSize() || '100%',
-            // Default: keep each body cell on one line and truncate with an
-            // ellipsis. `wrapText` lets the user opt back into wrapping.
+            // Cells truncate with an ellipsis unless wrapText is on.
             ...(state.wrapText
               ? null
               : {
@@ -162,8 +161,7 @@ function DataRow<T>({
   onCellClick?: (params: CellClickParams<T>) => void;
   rowHeight?: number;
 }) {
-  // explicit rowHeight: fix the cell height and drop vertical padding so the
-  // density preset doesn't push rows past it (content centers via vertical-align)
+  // Explicit rowHeight wins over the density preset's padding.
   const sizing = rowHeight ? { height: rowHeight, paddingTop: 0, paddingBottom: 0 } : undefined;
   return (
     <BodyRow selected={row.getIsSelected()}>
@@ -173,7 +171,7 @@ function DataRow<T>({
         const value = cell.getValue();
         const isEmpty = !!cell.column.accessorFn && (value == null || value === '');
         const spec = resolveCellStyleSpec(value, meta?.cellStyle, meta?.styleRules);
-        // a chip carries the css itself, otherwise it goes on the cell
+        // A chip carries the css itself; otherwise it goes on the cell.
         const isChip = spec?.variant === 'chip';
         const content = flexRender(cell.column.columnDef.cell, cell.getContext());
         const clickable = !!onCellClick && cell.column.id !== SELECTION_COL_ID;

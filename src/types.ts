@@ -55,11 +55,7 @@ export interface DataGridSlots {
   toolbarExtras?: ReactNode;
 }
 
-/**
- * Per-tool visibility for the toolbar. Every tool defaults to visible; set a
- * key to `false` to hide it. Pass `toolbar={false}` on DataGrid to drop the
- * toolbar entirely.
- */
+/** Per-tool toolbar visibility; every tool defaults to visible. */
 export interface DataGridToolbarOptions {
   quickFilter?: boolean;
   columnFilters?: boolean;
@@ -79,7 +75,7 @@ export interface DataGridState {
   columnSizing: Record<string, number>;
   showFilters: boolean;
   density: Density;
-  /** When false (default) body cells stay on one line and truncate with an ellipsis. */
+  /** When false (default), cells truncate with an ellipsis. */
   wrapText: boolean;
 }
 
@@ -94,12 +90,8 @@ export interface CellClickParams<T> {
 
 export interface DataGridProps<T> {
   /**
-   * Column configuration. Accepts either:
-   *  - `DataGridColumnDef<T>[]` — full programmatic column defs (functions ok), or
-   *  - `DataGridConfig` — a JSON-serializable object describing columns, filters
-   *    and sorting, suitable for storing as a string in a DB and loading
-   *    back (see `resolveDataGridConfig`).
-   * Optional — when omitted (or empty), columns are generated from the row data.
+   * Programmatic column defs, or a JSON-serializable `DataGridConfig`.
+   * When omitted, columns are generated from the row data.
    */
   columns?: DataGridColumnDef<T>[] | DataGridConfig;
   rows: T[];
@@ -119,11 +111,9 @@ export interface DataGridProps<T> {
   rowHeight?: number;
   initialState?: Partial<DataGridState>;
   /**
-   * Controlled state override. Each provided slice seeds the grid on mount and is
-   * re-applied whenever this prop's reference changes, so a parent can drive state
-   * after mount (e.g. apply a default filter once auth resolves). Pass a new object
-   * to push an update; between updates the grid manages the slice itself. Pair with
-   * `onStateChange` to keep the parent's copy in sync.
+   * Controlled state override. Provided slices are applied on mount and
+   * re-applied whenever this prop's reference changes; between updates the
+   * grid manages state itself. Pair with `onStateChange` to stay in sync.
    */
   state?: Partial<DataGridState>;
   onStateChange?: (state: DataGridState) => void;
@@ -138,16 +128,13 @@ export interface DataGridProps<T> {
   height?: number | string;
   className?: string;
 
-  /**
-   * Placeholder rendered for any cell whose value is null/undefined/empty.
-   * Defaults to "N/A". Pass `''` to keep empty cells blank.
-   */
+  /** Placeholder for empty cells. Defaults to "N/A"; pass `''` to leave blank. */
   emptyText?: ReactNode;
 
   enableCsvExport?: boolean;
   csvFileName?: string;
 
-  /** Fired when a data cell is clicked (not the selection or group-toggle cells). */
+  /** Fired when a data cell (not the selection cell) is clicked. */
   onCellClick?: (params: CellClickParams<T>) => void;
 }
 

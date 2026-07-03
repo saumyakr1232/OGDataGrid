@@ -17,9 +17,7 @@ function CompanyBadge() {
   return meta ? <Chip size="small" label={meta.company} /> : null;
 }
 
-// A serializable column layout, as it might be persisted in a DB — plain JSON,
-// no functions. Also shows off cellStyle/styleRules (variant, textColor,
-// backgroundColor, fontWeight, fontStyle) and a merged column.
+// A serializable column layout, as it might be persisted in a DB.
 const SAVED_LAYOUT = `{
   "columns": [
     { "field": "id", "header": "ID", "width": 90 },
@@ -204,11 +202,11 @@ export default function App() {
             <DataGrid.ResponsiveToolbar
               prefix={<DataGrid.QuickFilter placeholder="Search sales…" sx={{ minWidth: 260 }} />}
             >
-              <DataGrid.FilterToggle />
-              <DataGrid.ColumnsButton />
-              <DataGrid.DensityButton />
-              <DataGrid.WrapToggle />
-              <DataGrid.ExportButton />
+              <DataGrid.FilterToggle iconOnly />
+              <DataGrid.ColumnsButton iconOnly />
+              <DataGrid.DensityButton iconOnly />
+              <DataGrid.WrapToggle iconOnly />
+              <DataGrid.ExportButton iconOnly />
               <CompanyBadge />
               <Button size="small" variant="outlined" onClick={simulateLoad}>
                 Simulate load
@@ -228,7 +226,7 @@ export default function App() {
             Just Provider + Container + Table + Pagination — compact density, fixed 64px rows.
           </Typography>
         </Box>
-        {/* <DataGrid.Provider<Sale>
+        <DataGrid.Provider<Sale>
           columns={columns}
           rows={allRows}
           getRowId={(r) => r.id}
@@ -240,7 +238,7 @@ export default function App() {
             <DataGrid.Table<Sale> />
             <DataGrid.Pagination pageSizeOptions={[5, 10, 20]} />
           </DataGrid.Container>
-        </DataGrid.Provider> */}
+        </DataGrid.Provider>
       </Stack>
     </Container>
   );

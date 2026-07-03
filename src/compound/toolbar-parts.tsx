@@ -23,16 +23,14 @@ import { ColumnsMenu } from '../components/ColumnsMenu';
 import { DensityMenu } from '../components/DensityMenu';
 import { exportTableToCsv } from '../export/toCsv';
 import { useDebouncedFilter } from '../hooks/useDebouncedFilter';
-import { useDataGridContext } from './context';
+import { IconOnlyOverrideContext, useDataGridContext, useToolbarIconOnly } from './context';
 
 export type DataGridQuickFilterProps = Omit<TextFieldProps, 'value' | 'onChange'>;
 
 const QUICK_FILTER_DEBOUNCE_MS = 500;
 
-// Shrinks a tool button down to just its icon (drops the label's width).
 const ICON_ONLY_SX = { minWidth: 0, px: 1 } as const;
 
-/** Toolbar button props plus a per-part override for the toolbar `iconOnly` config. */
 export type ToolbarButtonProps = ButtonProps & { iconOnly?: boolean };
 
 export function DataGridQuickFilter({
@@ -43,8 +41,7 @@ export function DataGridQuickFilter({
   ...rest
 }: DataGridQuickFilterProps) {
   const { state, setters } = useDataGridContext();
-  // local value keeps typing instant; the global-filter scan is debounced and
-  // committed inside a transition (see useDebouncedFilter).
+  // Local value keeps typing instant; the filter commit is debounced.
   const { value: local, setValue: setLocal, isPending } = useDebouncedFilter(
     state.globalFilter,
     setters.setGlobalFilter,
@@ -89,8 +86,8 @@ export function DataGridFilterToggle({
   sx,
   ...rest
 }: ToolbarButtonProps) {
-  const { state, setters, iconOnly: ctxIconOnly } = useDataGridContext();
-  const iconOnly = iconOnlyProp ?? ctxIconOnly;
+  const { state, setters } = useDataGridContext();
+  const iconOnly = useToolbarIconOnly(iconOnlyProp);
   const activeCount = state.columnFilters.length;
   return (
     <Tooltip
@@ -125,18 +122,20 @@ export function DataGridFilterToggle({
 }
 
 export function DataGridColumnsButton({ iconOnly: iconOnlyProp, ...buttonProps }: ToolbarButtonProps) {
-  const { table, iconOnly: ctxIconOnly } = useDataGridContext();
-  return <ColumnsMenu table={table} buttonProps={buttonProps} iconOnly={iconOnlyProp ?? ctxIconOnly} />;
+  const { table } = useDataGridContext();
+  const iconOnly = useToolbarIconOnly(iconOnlyProp);
+  return <ColumnsMenu table={table} buttonProps={buttonProps} iconOnly={iconOnly} />;
 }
 
 export function DataGridDensityButton({ iconOnly: iconOnlyProp, ...buttonProps }: ToolbarButtonProps) {
-  const { state, setters, iconOnly: ctxIconOnly } = useDataGridContext();
+  const { state, setters } = useDataGridContext();
+  const iconOnly = useToolbarIconOnly(iconOnlyProp);
   return (
     <DensityMenu
       density={state.density}
       onChange={setters.setDensity}
       buttonProps={buttonProps}
-      iconOnly={iconOnlyProp ?? ctxIconOnly}
+      iconOnly={iconOnly}
     />
   );
 }
@@ -148,8 +147,8 @@ export function DataGridWrapToggle({
   sx,
   ...rest
 }: ToolbarButtonProps) {
-  const { state, setters, iconOnly: ctxIconOnly } = useDataGridContext();
-  const iconOnly = iconOnlyProp ?? ctxIconOnly;
+  const { state, setters } = useDataGridContext();
+  const iconOnly = useToolbarIconOnly(iconOnlyProp);
   return (
     <Tooltip title={state.wrapText ? 'Disable cell wrapping' : 'Enable cell wrapping'}>
       <Button
@@ -168,24 +167,22 @@ export function DataGridWrapToggle({
 }
 
 export interface DataGridOverflowMenuProps {
-  /** Controls to tuck behind the 3-dot button — toolbar parts, buttons, chips… */
   children?: ReactNode;
   tooltip?: string;
-  /** Override the trigger glyph (defaults to a vertical 3-dot icon). */
+  /** Trigger glyph; defaults to a vertical 3-dot icon. */
   icon?: ReactNode;
   buttonProps?: IconButtonProps;
+  /** Defaults to false — labels read better in a vertical menu. */
+  iconOnly?: boolean;
 }
 
-/**
- * A 3-dot overflow button that reveals its children in a menu. Children are
- * stacked vertically and stretched, so the existing toolbar parts (Density,
- * Wrap, Export, …) drop straight in. Each child closes the menu on click.
- */
+/** A 3-dot button that reveals its children stacked in a menu. */
 export function DataGridOverflowMenu({
   children,
   tooltip = 'More actions',
   icon,
   buttonProps,
+  iconOnly = false,
 }: DataGridOverflowMenuProps) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const close = () => setAnchor(null);
@@ -221,7 +218,9 @@ export function DataGridOverflowMenu({
             '& > *': { justifyContent: 'flex-start' },
           }}
         >
-          {children}
+          <IconOnlyOverrideContext.Provider value={iconOnly}>
+            {children}
+          </IconOnlyOverrideContext.Provider>
         </Box>
       </Menu>
     </>
@@ -236,8 +235,8 @@ export function DataGridExportButton({
   sx,
   ...rest
 }: ToolbarButtonProps) {
-  const { table, csvFileName, iconOnly: ctxIconOnly } = useDataGridContext();
-  const iconOnly = iconOnlyProp ?? ctxIconOnly;
+  const { table, csvFileName } = useDataGridContext();
+  const iconOnly = useToolbarIconOnly(iconOnlyProp);
   const button = (
     <Button
       {...rest}
