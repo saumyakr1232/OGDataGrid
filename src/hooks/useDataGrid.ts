@@ -12,6 +12,7 @@ export const SELECTION_COL_ID = '__select__';
 export interface ResolvedTools {
   quickFilter: boolean;
   columnFilters: boolean;
+  resetFilters: boolean;
   columns: boolean;
   density: boolean;
   export: boolean;
@@ -21,6 +22,8 @@ export interface UseDataGridResult<T> {
   table: ReturnType<typeof useDataGridState<T>>['table'];
   state: DataGridState;
   setters: ReturnType<typeof useDataGridState<T>>['setters'];
+  /** Increments on `setters.resetFilters()`; debounced filter inputs re-sync on change. */
+  filterEpoch: number;
   tools: ResolvedTools;
   /** When true, toolbar tool buttons render icon-only (label in a tooltip). */
   iconOnly: boolean;
@@ -51,6 +54,7 @@ export function useDataGrid<T>(props: DataGridProps<T>): UseDataGridResult<T> {
   const tools: ResolvedTools = {
     quickFilter: toolbarOpts.quickFilter ?? true,
     columnFilters: toolbarOpts.columnFilters ?? true,
+    resetFilters: toolbarOpts.resetFilters ?? true,
     columns: toolbarOpts.columns ?? true,
     density: toolbarOpts.density ?? true,
     export: (toolbarOpts.export ?? true) && enableCsvExport,
@@ -89,7 +93,7 @@ export function useDataGrid<T>(props: DataGridProps<T>): UseDataGridResult<T> {
     return out;
   }, [baseColumns, selection]);
 
-  const { table, state, setters } = useDataGridState({
+  const { table, state, setters, filterEpoch } = useDataGridState({
     ...props,
     columns: enrichedColumns,
     initialState,
@@ -100,6 +104,7 @@ export function useDataGrid<T>(props: DataGridProps<T>): UseDataGridResult<T> {
     table,
     state,
     setters,
+    filterEpoch,
     tools,
     iconOnly,
     paginating,

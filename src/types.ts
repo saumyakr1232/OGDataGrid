@@ -59,6 +59,8 @@ export interface DataGridSlots {
 export interface DataGridToolbarOptions {
   quickFilter?: boolean;
   columnFilters?: boolean;
+  /** Button that clears all column filters and the quick search at once. */
+  resetFilters?: boolean;
   columns?: boolean;
   density?: boolean;
   export?: boolean;

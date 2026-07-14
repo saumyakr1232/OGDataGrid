@@ -55,6 +55,7 @@ export function ToolbarTab() {
               prefix={<DataGrid.QuickFilter placeholder="Search…" sx={{ minWidth: 220 }} />}
             >
               <DataGrid.FilterToggle />
+              <DataGrid.ResetFilters />
               <DataGrid.ColumnsButton />
               <DataGrid.DensityButton />
               <DataGrid.WrapToggle />
@@ -73,6 +74,7 @@ export function ToolbarTab() {
               {/* spacer pushes the 3-dot menu to the right edge */}
               <span style={{ flex: 1 }} />
               <DataGrid.OverflowMenu>
+                <DataGrid.ResetFilters />
                 <DataGrid.ColumnsButton />
                 <DataGrid.DensityButton />
                 <DataGrid.WrapToggle />

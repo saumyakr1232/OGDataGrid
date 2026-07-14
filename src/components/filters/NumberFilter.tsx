@@ -7,10 +7,19 @@ type Range = [number | '', number | ''];
 // Stable reference so the external-sync comparison doesn't see a new array every render.
 const EMPTY_RANGE: Range = ['', ''];
 
-export function NumberFilter<T>({ column }: { column: Column<T, unknown> }) {
+export function NumberFilter<T>({
+  column,
+  resetKey,
+}: {
+  column: Column<T, unknown>;
+  resetKey?: number;
+}) {
   const committed = (column.getFilterValue() as Range) ?? EMPTY_RANGE;
-  const { value, setValue } = useDebouncedFilter<Range>(committed, (next) =>
-    column.setFilterValue(next[0] === '' && next[1] === '' ? undefined : next),
+  const { value, setValue } = useDebouncedFilter<Range>(
+    committed,
+    (next) => column.setFilterValue(next[0] === '' && next[1] === '' ? undefined : next),
+    undefined,
+    resetKey,
   );
   const [min, max] = value;
   return (

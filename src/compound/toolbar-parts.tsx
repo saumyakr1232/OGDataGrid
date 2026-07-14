@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
+import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import ClearIcon from '@mui/icons-material/Clear';
 import WrapTextIcon from '@mui/icons-material/WrapText';
@@ -46,12 +47,13 @@ export function DataGridQuickFilter({
   InputProps,
   ...rest
 }: DataGridQuickFilterProps) {
-  const { state, setters } = useDataGridContext();
+  const { state, setters, filterEpoch } = useDataGridContext();
   // Local value keeps typing instant; the filter commit is debounced.
   const { value: local, setValue: setLocal, isPending } = useDebouncedFilter(
     state.globalFilter,
     setters.setGlobalFilter,
     QUICK_FILTER_DEBOUNCE_MS,
+    filterEpoch,
   );
 
   return (
@@ -123,6 +125,57 @@ export function DataGridFilterToggle({
           </>
         )}
       </Button>
+    </Tooltip>
+  );
+}
+
+/**
+ * Clears every active filter at once — both the column filters and the quick
+ * search. Disabled when there is nothing to clear. The filter inputs re-sync
+ * from the cleared state, so their text/range values visibly reset too.
+ */
+export function DataGridResetFiltersButton({
+  size = 'small',
+  children = 'Reset filters',
+  iconOnly: iconOnlyProp,
+  sx,
+  disabled,
+  ...rest
+}: ToolbarButtonProps) {
+  const { state, setters } = useDataGridContext();
+  const iconOnly = useToolbarIconOnly(iconOnlyProp);
+  const closeOverflow = useOverflowClose();
+  const activeCount = state.columnFilters.length + (state.globalFilter ? 1 : 0);
+  const nothingToReset = activeCount === 0;
+
+  const reset = () => {
+    setters.resetFilters();
+    closeOverflow?.();
+  };
+
+  const button = (
+    <Button
+      {...rest}
+      size={size}
+      variant="text"
+      color="inherit"
+      disabled={disabled ?? nothingToReset}
+      startIcon={iconOnly ? undefined : <FilterAltOffIcon />}
+      onClick={reset}
+      aria-label="Reset filters"
+      sx={iconOnly ? { ...ICON_ONLY_SX, ...sx } : sx}
+    >
+      {iconOnly ? <FilterAltOffIcon fontSize="small" /> : children}
+    </Button>
+  );
+
+  const title = nothingToReset
+    ? 'No active filters'
+    : `Clear ${activeCount} active ${activeCount === 1 ? 'filter' : 'filters'}`;
+  // A disabled MUI button fires no events, so Tooltip needs a wrapper to hover.
+  return (
+    <Tooltip title={title}>
+      <span style={{ display: 'inline-flex' }}>{button}</span>
     </Tooltip>
   );
 }

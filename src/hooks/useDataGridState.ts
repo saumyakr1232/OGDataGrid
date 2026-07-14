@@ -99,6 +99,19 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [controlledState]);
 
+  // Bumped by resetFilters(). Debounced filter inputs keep their own local value
+  // and only re-sync when the committed value changes — but a reset while an edit
+  // is still in flight leaves the committed value untouched (it hasn't landed
+  // yet), so the stale text would survive and re-commit after the debounce. This
+  // epoch gives those inputs an unambiguous "drop what you have" signal.
+  const [filterEpoch, setFilterEpoch] = useState(0);
+
+  const resetFilters = () => {
+    setColumnFilters([]);
+    setGlobalFilter('');
+    setFilterEpoch((e) => e + 1);
+  };
+
   const fullState = useMemo<DataGridState>(
     () => ({
       sorting,
@@ -226,6 +239,7 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
   return {
     table,
     state: fullState,
+    filterEpoch,
     setters: {
       setSorting,
       setColumnFilters,
@@ -237,6 +251,7 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
       setShowFilters,
       setDensity,
       setWrapText,
+      resetFilters,
     },
   };
 }

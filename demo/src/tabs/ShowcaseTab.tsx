@@ -115,6 +115,7 @@ export function ShowcaseTab() {
               prefix={<DataGrid.QuickFilter placeholder="Search sales…" sx={{ minWidth: 260 }} />}
             >
               <DataGrid.FilterToggle iconOnly />
+              <DataGrid.ResetFilters iconOnly />
               <DataGrid.ColumnsButton iconOnly />
               <DataGrid.DensityButton iconOnly />
               <DataGrid.WrapToggle iconOnly />

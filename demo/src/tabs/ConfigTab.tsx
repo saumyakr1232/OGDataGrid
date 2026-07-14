@@ -85,7 +85,10 @@ export function ConfigTab() {
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1fr) minmax(0, 1fr)' },
+          // minmax(0, …) on both: a plain `1fr` track has an `auto` minimum, so
+          // the code panel's unwrapped <pre> would stretch the track to its
+          // longest line and push the whole page into horizontal overflow.
+          gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: 'minmax(0, 1fr) minmax(0, 1fr)' },
           gap: 2,
           alignItems: 'start',
         }}

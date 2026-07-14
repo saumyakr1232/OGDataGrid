@@ -13,6 +13,7 @@ import {
   DataGridFilterToggle,
   DataGridOverflowMenu,
   DataGridQuickFilter,
+  DataGridResetFiltersButton,
   DataGridWrapToggle,
 } from './compound/toolbar-parts';
 import type { DataGridProps } from './types';
@@ -62,6 +63,7 @@ export interface DataGridComponent {
   readonly Pagination: typeof DataGridPagination;
   readonly QuickFilter: typeof DataGridQuickFilter;
   readonly FilterToggle: typeof DataGridFilterToggle;
+  readonly ResetFilters: typeof DataGridResetFiltersButton;
   readonly ColumnsButton: typeof DataGridColumnsButton;
   readonly DensityButton: typeof DataGridDensityButton;
   readonly WrapToggle: typeof DataGridWrapToggle;
@@ -79,6 +81,7 @@ export const DataGrid: DataGridComponent = Object.assign(DataGridRoot, {
   Pagination: DataGridPagination,
   QuickFilter: DataGridQuickFilter,
   FilterToggle: DataGridFilterToggle,
+  ResetFilters: DataGridResetFiltersButton,
   ColumnsButton: DataGridColumnsButton,
   DensityButton: DataGridDensityButton,
   WrapToggle: DataGridWrapToggle,

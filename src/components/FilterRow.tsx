@@ -7,7 +7,14 @@ import { SelectFilter } from './filters/SelectFilter';
 import { BooleanFilter } from './filters/BooleanFilter';
 import type { DataGridColumnMeta } from '../types';
 
-export function FilterRow<T>({ headers }: { headers: Header<T, unknown>[] }) {
+export function FilterRow<T>({
+  headers,
+  resetKey,
+}: {
+  headers: Header<T, unknown>[];
+  /** Bumped on resetFilters(); lets the debounced inputs drop in-flight edits. */
+  resetKey?: number;
+}) {
   return (
     <TableRow>
       {headers.map((header) => {
@@ -22,7 +29,7 @@ export function FilterRow<T>({ headers }: { headers: Header<T, unknown>[] }) {
             style={{ width: header.getSize() }}
           >
             {!canFilter ? null : variant === 'number' ? (
-              <NumberFilter column={col} />
+              <NumberFilter column={col} resetKey={resetKey} />
             ) : variant === 'date' ? (
               <DateFilter column={col} />
             ) : variant === 'select' ? (
@@ -32,7 +39,7 @@ export function FilterRow<T>({ headers }: { headers: Header<T, unknown>[] }) {
             ) : variant === 'boolean' ? (
               <BooleanFilter column={col} />
             ) : (
-              <TextFilter column={col} />
+              <TextFilter column={col} resetKey={resetKey} />
             )}
           </TableCell>
         );

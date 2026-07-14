@@ -40,6 +40,7 @@ export function DataGridTable<T>() {
     paginating,
     enableVirtualization,
     onCellClick,
+    filterEpoch,
     rowHeight: rowHeightProp,
   } = useDataGridContext<T>();
 
@@ -74,6 +75,12 @@ export function DataGridTable<T>() {
           sx={{
             tableLayout: 'fixed',
             width: table.getTotalSize() || '100%',
+            // Fill the container when the columns don't add up to its width —
+            // otherwise the rows stop short and leave a blank gutter to the
+            // right of the last column. With `table-layout: fixed` the surplus
+            // is shared across the columns proportionally. When the columns are
+            // wider than the container this is a no-op and it scrolls as before.
+            minWidth: '100%',
             // Cells truncate with an ellipsis unless wrapText is on.
             ...(state.wrapText
               ? null
@@ -106,7 +113,7 @@ export function DataGridTable<T>() {
             </TableRow>
           ))}
           {tools.columnFilters && state.showFilters && (
-            <FilterRow headers={table.getHeaderGroups()[0]?.headers ?? []} />
+            <FilterRow headers={table.getHeaderGroups()[0]?.headers ?? []} resetKey={filterEpoch} />
           )}
         </StickyHead>
         <TableBody>

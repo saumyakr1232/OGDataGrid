@@ -11,6 +11,7 @@ export function useDebouncedFilter<V>(
   committed: V,
   onCommit: (value: V) => void,
   delay = 200,
+  resetKey?: number,
 ): { value: V; setValue: (next: V) => void; isPending: boolean } {
   const [value, setValue] = useState<V>(committed);
   const [isPending, startTransition] = useTransition();
@@ -26,6 +27,18 @@ export function useDebouncedFilter<V>(
       setValue(committed);
     }
   }, [committed]);
+
+  // A "drop what you have" signal (see resetFilters). Needed because a reset
+  // during an in-flight edit leaves `committed` unchanged — it never landed —
+  // so the check above sees nothing and the stale value would re-commit. Setting
+  // `value` back also cancels the pending timer via the effect cleanup below.
+  const resetKeyRef = useRef(resetKey);
+  useEffect(() => {
+    if (resetKey === resetKeyRef.current) return;
+    resetKeyRef.current = resetKey;
+    lastCommittedRef.current = committed;
+    setValue(committed);
+  }, [resetKey, committed]);
 
   useEffect(() => {
     if (value === lastCommittedRef.current) return;

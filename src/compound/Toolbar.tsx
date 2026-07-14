@@ -7,6 +7,7 @@ import {
   DataGridExportButton,
   DataGridFilterToggle,
   DataGridQuickFilter,
+  DataGridResetFiltersButton,
 } from './toolbar-parts';
 
 /**
@@ -22,6 +23,7 @@ export function DataGridToolbar({ children, ...rest }: BoxProps) {
     <GridToolbar {...rest}>
       {tools.quickFilter && <DataGridQuickFilter />}
       {tools.columnFilters && <DataGridFilterToggle />}
+      {tools.resetFilters && <DataGridResetFiltersButton />}
       {tools.columns && <DataGridColumnsButton />}
       {tools.density && <DataGridDensityButton />}
       {tools.export && <DataGridExportButton />}

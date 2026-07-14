@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
-import { fireEvent, render } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import { DataGrid } from './DataGrid';
 import { DataGridProvider } from './compound/Provider';
 import type { DataGridColumnDef } from './types';
@@ -103,6 +103,53 @@ describe('<DataGrid /> all-in-one', () => {
     const firstRowCheckbox = container.querySelector('tbody input[type="checkbox"]') as HTMLInputElement;
     fireEvent.click(firstRowCheckbox);
     expect(getByTestId('count').textContent).toBe('1');
+  });
+
+  it('reset filters clears the column filters and the quick search', async () => {
+    const { container, getByLabelText, getByPlaceholderText } = render(
+      <DataGrid<Person>
+        rows={data}
+        columns={columns}
+        getRowId={(r) => r.id}
+        initialState={{ showFilters: true }}
+      />,
+    );
+
+    const resetBtn = getByLabelText('Reset filters') as HTMLButtonElement;
+    // nothing active yet
+    expect(resetBtn.disabled).toBe(true);
+
+    // type into a column filter and the quick search
+    const nameFilter = getByLabelText('Filter name');
+    fireEvent.change(nameFilter, { target: { value: 'Ali' } });
+    const search = getByPlaceholderText('Quick search…');
+    fireEvent.change(search, { target: { value: 'Bob' } });
+
+    // the debounced commits land, enabling the button and filtering the rows
+    await waitFor(() => expect(resetBtn.disabled).toBe(false));
+
+    fireEvent.click(resetBtn);
+
+    await waitFor(() => {
+      // inputs re-sync from the cleared state
+      expect((nameFilter as HTMLInputElement).value).toBe('');
+      expect((search as HTMLInputElement).value).toBe('');
+      expect(resetBtn.disabled).toBe(true);
+    });
+    // all rows are back
+    expect(container.querySelectorAll('tbody tr').length).toBe(data.length);
+  });
+
+  it('toolbar={{ resetFilters: false }} hides the reset button', () => {
+    const { queryByLabelText } = render(
+      <DataGrid<Person>
+        rows={data}
+        columns={columns}
+        getRowId={(r) => r.id}
+        toolbar={{ resetFilters: false }}
+      />,
+    );
+    expect(queryByLabelText('Reset filters')).toBeNull();
   });
 
   it('renders slots.toolbarExtras inside the default toolbar', () => {

@@ -19,13 +19,14 @@ export { DataGridPagination } from './compound/Pagination';
 export {
   DataGridQuickFilter,
   DataGridFilterToggle,
+  DataGridResetFiltersButton,
   DataGridColumnsButton,
   DataGridDensityButton,
   DataGridWrapToggle,
   DataGridExportButton,
   DataGridOverflowMenu,
 } from './compound/toolbar-parts';
-export type { DataGridOverflowMenuProps } from './compound/toolbar-parts';
+export type { DataGridOverflowMenuProps, ToolbarButtonProps } from './compound/toolbar-parts';
 
 export type {
   DataGridProps,
