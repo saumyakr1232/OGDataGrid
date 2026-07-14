@@ -4,8 +4,9 @@
       "name": "Default",
       "files": [
         "src/compound/toolbar-parts.tsx",
-        "demo/src/App.tsx",
         "src/compound/context.ts",
+        "src/components/ColumnsMenu.tsx",
+        "src/components/DensityMenu.tsx",
         ".vscode/changelists.json"
       ]
     }

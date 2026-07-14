@@ -1,4 +1,5 @@
 export { DataGrid } from './DataGrid';
+export type { DataGridComponentProps, DataGridComponent } from './DataGrid';
 
 // Headless core + compound parts, for building a custom grid layout.
 export { useDataGrid, SELECTION_COL_ID } from './hooks/useDataGrid';
@@ -28,6 +29,7 @@ export type { DataGridOverflowMenuProps } from './compound/toolbar-parts';
 
 export type {
   DataGridProps,
+  DataGridState,
   DataGridColumnDef,
   DataGridColumnMeta,
   DataGridSlots,

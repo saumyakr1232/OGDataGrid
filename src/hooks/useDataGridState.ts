@@ -211,11 +211,17 @@ export function useDataGridState<T>(props: DataGridProps<T>) {
     },
   });
 
+  // Notify through a ref keyed only on rowSelection: consumers typically pass
+  // `selection={{ mode, onChange }}` inline (fresh reference every render), and
+  // depending on that object identity re-fired the effect each render — with an
+  // onChange that sets parent state, that's an infinite update loop.
+  const selectionOnChangeRef = useRef(selection?.onChange);
+  selectionOnChangeRef.current = selection?.onChange;
   useEffect(() => {
-    if (!selection?.onChange) return;
+    if (!selectionOnChangeRef.current) return;
     const ids = Object.keys(rowSelection).filter((k) => rowSelection[k]);
-    selection.onChange(ids);
-  }, [rowSelection, selection]);
+    selectionOnChangeRef.current(ids);
+  }, [rowSelection]);
 
   return {
     table,
